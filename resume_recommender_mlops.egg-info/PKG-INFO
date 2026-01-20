@@ -1,0 +1,10 @@
+Metadata-Version: 2.4
+Name: resume-recommender-mlops
+Version: 0.1.0
+Summary: Resume recommender system with MLOps architecture
+Requires-Python: >=3.10
+Requires-Dist: fastapi
+Requires-Dist: uvicorn
+Requires-Dist: sqlalchemy
+Requires-Dist: psycopg2-binary
+Requires-Dist: python-dotenv

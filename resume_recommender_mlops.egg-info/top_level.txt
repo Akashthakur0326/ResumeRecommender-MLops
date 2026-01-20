@@ -1,0 +1,9 @@
+app
+artifacts
+data
+db
+infra
+ml
+scripts
+ui
+venv
