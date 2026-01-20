@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Secrets
+.env
+
+# Artifacts / data
+data/
+artifacts/
+
+
+# Data & artifacts
+data/
+artifacts/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
