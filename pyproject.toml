@@ -13,7 +13,10 @@ dependencies = [
     "uvicorn",
     "sqlalchemy",
     "psycopg2-binary",
-    "python-dotenv"
+    "python-dotenv",
+    "python-docx",
+    "paddleocr",
+    "pymupdf"  
 ]
 
 [tool.setuptools.packages.find]
