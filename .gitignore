@@ -35,3 +35,4 @@ artifacts/
 
 # OS
 .DS_Store
+/data
