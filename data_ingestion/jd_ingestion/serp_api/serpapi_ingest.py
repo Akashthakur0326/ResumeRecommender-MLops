@@ -64,7 +64,7 @@ def main():
     load_dotenv()  # ONLY here
 
     params = load_params()
-    MAX_API_CALLS = params["ingestion"]["max_api_calls"]
+    MAX_API_CALLS = params["serpapi_ingestion"]["max_api_calls"]
 
     tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
     if not tracking_uri:
@@ -97,6 +97,8 @@ def main():
     with mlflow.start_run(run_name=f"serpapi_{run_month}"):
 
         for job in jobs:
+            if should_stop: break
+
             job_title = job["job_title"]
             priority = job["priority"]
 
@@ -108,6 +110,8 @@ def main():
             
 
             for location in locations:
+                if should_stop: break
+
                 page_token = None
 
                 while True:
@@ -120,31 +124,37 @@ def main():
                     try:
                         response = fetch_jobs(job_title, location, page_token)
                         api_calls += 1
-
                         logger.info(f"API Progress: {api_calls}/{MAX_API_CALLS} | {job_title} @ {location}")
+                    
                     except RuntimeError as e:
                         msg = str(e).lower()
-                        if "429" in msg or "too many requests" in msg:
+                        if "run out of searches" in msg or "quota" in msg:
+                            logger.warning("Quota reached! Stopping entire ingestion.")
+                            stop_reason = "quota_exceeded"
+                            should_stop = True
+                        elif "429" in msg or "too many requests" in msg:
+                            logger.error("SerpAPI rate limit hit")
                             stop_reason = "serpapi_rate_limit"
                             should_stop = True
-                            logger.error("SerpAPI rate limit hit")
                         else:
-                            logger.exception("Non-fatal SerpAPI error")
+                            logger.error(f"Non-fatal SerpAPI error: {e}")
+                        
+                        # Exit the page-token while loop for any error
                         break
-
+                    
+                    if should_stop: break
+                    # --- SUCCESS PATH: Save Data ---
                     filename = (
-                            f"{safe_filename(job_title)}_"
-                            f"{safe_filename(location)}_"
-                            f"page{api_calls}.json"
-                        )
-
+                        f"{safe_filename(job_title)}_"
+                        f"{safe_filename(location)}_"
+                        f"page{api_calls}.json"
+                    )
 
                     with open(raw_dir / filename, "w", encoding="utf-8") as f:
                         json.dump(response, f, ensure_ascii=False, indent=2)
 
                     batch = response.get("jobs_results", [])
                     total_jobs += len(batch)
-
                     logger.info(f"Saved {len(batch)} jobs to {filename}")
 
                     page_token = response.get("next_page_token")

@@ -23,6 +23,10 @@ def get_raw_run_dir(run_month: str) -> Path:
     """
     return RAW_SERPAPI_DIR / run_month 
 
+def get_processed_data_path(run_month: str) -> Path:
+    
+    return PROCESSED_SERPAPI_DIR / run_month 
+
 def get_log_path(run_month: str) -> Path:
     """
     Creates a per-run log file

@@ -5,12 +5,12 @@ stages:
     deps:
     - path: data/constants/jobs.csv
       hash: md5
-      md5: a1dfac93080e339649d81a49dcc7cda4
-      size: 1909
+      md5: da8b2321beccda6a164a1e254ddd25ff
+      size: 2506
     - path: data/constants/locations.yaml
       hash: md5
-      md5: 00fe506ef732c12f7266e89a20d78464
-      size: 111
+      md5: 835e0ab1523ebc559cd6476ed54c3dd4
+      size: 213
     - path: data_ingestion/jd_ingestion/serp_api/priority_scheduler.py
       hash: md5
       md5: 9302748c69dea3e928b2599a58c27e02
@@ -21,25 +21,47 @@ stages:
       size: 827
     - path: data_ingestion/jd_ingestion/serp_api/serpapi_ingest.py
       hash: md5
-      md5: 5713f11b365d69ea0f0e048824da4096
-      size: 5282
+      md5: 108ad826a6485aa45181bfde26d89db4
+      size: 5861
     - path: utils
       hash: md5
-      md5: 187d9d31e2faaddcd787fb4932e7a6df.dir
-      size: 2283
+      md5: 58ad749bb0226325b6faabd5344e5a26.dir
+      size: 2392
       nfiles: 3
     - path: utils/paths.py
       hash: md5
-      md5: 2be9eb8463b3741b6f0ddf6209dd62df
-      size: 1170
+      md5: 924f883b33f602db4ae53a5e27540c92
+      size: 1279
     params:
       params.yaml:
-        ingestion:
-          max_api_calls: 260
-          retry_delay_seconds: 60
+        serpapi_ingestion:
+          max_api_calls: 255
     outs:
     - path: data/raw/serpapi
       hash: md5
-      md5: a702bf2aa459b321c87ce50ac4b448d2.dir
-      size: 15924756
-      nfiles: 152
+      md5: 84e324c34c449bf89fd57d9294bbe368.dir
+      size: 10282108
+      nfiles: 97
+  process_jd_raw_jsons:
+    cmd: python data_ingestion\processors\process_data.py
+    deps:
+    - path: data/raw/serpapi
+      hash: md5
+      md5: 84e324c34c449bf89fd57d9294bbe368.dir
+      size: 10282108
+      nfiles: 97
+    - path: data_ingestion/processors/process_data.py
+      hash: md5
+      md5: 721d9bc6b59cd65995185e5c9bf8af05
+      size: 6091
+    - path: utils/
+      hash: md5
+      md5: 58ad749bb0226325b6faabd5344e5a26.dir
+      size: 2392
+      nfiles: 3
+    outs:
+    - path: data/processed/
+      hash: md5
+      md5: e63feb6b79bd387126f1a5d9331e873f.dir
+      size: 4075888
+      nfiles: 1

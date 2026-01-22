@@ -10,6 +10,15 @@ stages:
       - utils/paths.py 
       - utils
     params:
-      - ingestion
+      - serpapi_ingestion
     outs:
       - data/raw/serpapi
+    
+  process_jd_raw_jsons:
+    cmd: python data_ingestion\processors\process_data.py
+    deps:
+      - data_ingestion/processors/process_data.py
+      - data/raw/serpapi  # Depends on the raw folder
+      - utils/            # Depends on utils logic
+    outs:
+      - data/processed/
