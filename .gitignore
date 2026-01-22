@@ -22,12 +22,14 @@ __pycache__/
 .env
 
 # Artifacts / data
-data/
+# Ignore the data content
+data/**
+# BUT do not ignore the .dvc files inside data
+!data/**/.dvc
 artifacts/
 
 
 # Data & artifacts
-data/
 artifacts/
 
 # Logs
@@ -35,4 +37,6 @@ artifacts/
 
 # OS
 .DS_Store
-/data
+
+#temp 
+.github

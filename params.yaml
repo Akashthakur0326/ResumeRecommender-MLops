@@ -1,0 +1,17 @@
+# params.yaml
+
+ingestion:
+  max_api_calls: 260
+  # If we hit a rate limit, how many seconds to wait?
+  retry_delay_seconds: 60 
+
+search:
+  # Search Engine Parameters (Easy to change to 'us' later)
+  engine: "google_jobs"
+  gl: "in"        # Geolocation: India
+  hl: "en"        # Host Language: English
+  google_domain: "google.com"
+
+filenames:
+  jobs_data: "jobs.csv"
+  locations_data: "locations.yaml"

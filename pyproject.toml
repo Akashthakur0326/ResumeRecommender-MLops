@@ -16,7 +16,23 @@ dependencies = [
     "python-dotenv",
     "python-docx",
     "paddleocr",
-    "pymupdf"  
+    "pymupdf",
+    "dvc",
+    "mlflow",
+    "dagshub",
+    "ipykernel",
+    "google-search-results",
+    "requests",
+    "pandas",
+    "numpy",
+    "beautifulsoup4",
+    "lxml", 
+    "tqdm",
+    "python-dateutil",
+    "pydantic",
+    "python-dotenv",
+    "langdetect",
+    "unidecode"  
 ]
 
 [tool.setuptools.packages.find]

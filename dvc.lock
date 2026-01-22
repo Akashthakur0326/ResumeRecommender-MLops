@@ -1,0 +1,45 @@
+schema: '2.0'
+stages:
+  ingest:
+    cmd: python data_ingestion/jd_ingestion/serp_api/serpapi_ingest.py
+    deps:
+    - path: data/constants/jobs.csv
+      hash: md5
+      md5: a1dfac93080e339649d81a49dcc7cda4
+      size: 1909
+    - path: data/constants/locations.yaml
+      hash: md5
+      md5: 00fe506ef732c12f7266e89a20d78464
+      size: 111
+    - path: data_ingestion/jd_ingestion/serp_api/priority_scheduler.py
+      hash: md5
+      md5: 9302748c69dea3e928b2599a58c27e02
+      size: 930
+    - path: data_ingestion/jd_ingestion/serp_api/serpapi_client.py
+      hash: md5
+      md5: e89cfdf758c0788f920dab384063a142
+      size: 827
+    - path: data_ingestion/jd_ingestion/serp_api/serpapi_ingest.py
+      hash: md5
+      md5: 5713f11b365d69ea0f0e048824da4096
+      size: 5282
+    - path: utils
+      hash: md5
+      md5: 187d9d31e2faaddcd787fb4932e7a6df.dir
+      size: 2283
+      nfiles: 3
+    - path: utils/paths.py
+      hash: md5
+      md5: 2be9eb8463b3741b6f0ddf6209dd62df
+      size: 1170
+    params:
+      params.yaml:
+        ingestion:
+          max_api_calls: 260
+          retry_delay_seconds: 60
+    outs:
+    - path: data/raw/serpapi
+      hash: md5
+      md5: a702bf2aa459b321c87ce50ac4b448d2.dir
+      size: 15924756
+      nfiles: 152

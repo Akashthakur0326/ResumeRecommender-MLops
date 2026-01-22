@@ -1,3 +1,31 @@
 # Add patterns of files dvc should ignore, which could improve
 # the performance. Learn more at
 # https://dvc.org/doc/user-guide/dvcignore
+# --- Environment & Build (CRITICAL) ---
+venv311/
+*.egg-info/
+__pycache__/
+*.pyc
+
+# --- OS & IDE Junk ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.ipynb_checkpoints/
+
+# --- Project Specific Secrets & Logs ---
+.env
+logs/
+*.log
+
+# --- DVC & Git Metadata ---
+# Prevent DVC from traversing internal tracking files
+.git/
+.dvc/cache/
+.dvc/tmp/
+.dvc/config.local
+
+# --- MLflow & Experiments ---
+# We use MLflow for metrics, so DVC doesn't need to scan its local storage
+mlruns/

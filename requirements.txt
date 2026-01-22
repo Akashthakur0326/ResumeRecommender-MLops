@@ -4,23 +4,86 @@
 #
 #    pip-compile --output-file=requirements.txt pyproject.toml
 #
+aiohappyeyeballs==2.6.1
+    # via aiohttp
+aiohttp==3.13.3
+    # via
+    #   aiohttp-retry
+    #   fsspec
+aiohttp-retry==2.9.1
+    # via
+    #   dvc-http
+    #   scmrepo
+aiosignal==1.4.0
+    # via aiohttp
 aistudio-sdk==0.3.8
     # via paddlex
+alembic==1.18.1
+    # via mlflow
+amqp==5.3.1
+    # via kombu
 annotated-doc==0.0.4
     # via fastapi
 annotated-types==0.7.0
     # via pydantic
+antlr4-python3-runtime==4.9.3
+    # via
+    #   hydra-core
+    #   omegaconf
 anyio==4.12.1
     # via
+    #   gql
     #   httpx
     #   starlette
+appdirs==1.4.4
+    # via
+    #   dagshub
+    #   iterative-telemetry
+asttokens==3.0.1
+    # via stack-data
+asyncssh==2.22.0
+    # via scmrepo
+atpublic==7.0.0
+    # via flufl-lock
+attrs==25.4.0
+    # via
+    #   aiohttp
+    #   dvc
+    #   dvc-data
+    #   sqltrie
+backoff==2.2.1
+    # via gql
 bce-python-sdk==0.9.59
     # via aistudio-sdk
+beautifulsoup4==4.14.3
+    # via resume-recommender-mlops (pyproject.toml)
+billiard==4.2.4
+    # via celery
+blinker==1.9.0
+    # via flask
+boto3==1.42.31
+    # via dagshub
+botocore==1.42.31
+    # via
+    #   boto3
+    #   s3transfer
+cachetools==6.2.4
+    # via
+    #   mlflow-skinny
+    #   mlflow-tracing
+celery==5.6.2
+    # via
+    #   dvc
+    #   dvc-task
 certifi==2026.1.4
     # via
     #   httpcore
     #   httpx
     #   requests
+cffi==2.0.0
+    # via
+    #   cryptography
+    #   pygit2
 chardet==5.2.0
     # via paddlex
 charset-normalizer==3.4.4
@@ -28,28 +91,170 @@ charset-normalizer==3.4.4
 click==8.3.1
     # via
     #   aistudio-sdk
+    #   celery
+    #   click-didyoumean
+    #   click-plugins
+    #   click-repl
+    #   dagshub
+    #   flask
+    #   mlflow-skinny
+    #   typer
     #   typer-slim
     #   uvicorn
+click-didyoumean==0.3.1
+    # via celery
+click-plugins==1.1.1.2
+    # via celery
+click-repl==0.3.0
+    # via celery
+cloudpickle==3.1.2
+    # via mlflow-skinny
 colorama==0.4.6
     # via
     #   click
     #   colorlog
+    #   dvc
+    #   ipython
     #   tqdm
 colorlog==6.10.1
     # via paddlex
-fastapi==0.128.0
+comm==0.2.3
+    # via ipykernel
+configobj==5.0.9
+    # via dvc
+contourpy==1.3.3
+    # via matplotlib
+cryptography==46.0.3
+    # via
+    #   asyncssh
+    #   mlflow
+cycler==0.12.1
+    # via matplotlib
+dacite==1.6.0
+    # via dagshub
+dagshub==0.6.4
     # via resume-recommender-mlops (pyproject.toml)
+dagshub-annotation-converter==0.1.15
+    # via dagshub
+databricks-sdk==0.78.0
+    # via
+    #   mlflow-skinny
+    #   mlflow-tracing
+dataclasses-json==0.6.7
+    # via dagshub
+debugpy==1.8.19
+    # via ipykernel
+decorator==5.2.1
+    # via ipython
+dictdiffer==0.9.0
+    # via dvc-data
+diskcache==5.6.3
+    # via dvc-data
+distro==1.9.0
+    # via
+    #   dvc
+    #   iterative-telemetry
+docker==7.1.0
+    # via mlflow
+dpath==2.2.0
+    # via dvc
+dulwich==1.0.0
+    # via
+    #   dvc
+    #   dvc-studio-client
+    #   scmrepo
+dvc==3.66.1
+    # via resume-recommender-mlops (pyproject.toml)
+dvc-data==3.18.2
+    # via dvc
+dvc-http==2.32.0
+    # via dvc
+dvc-objects==5.2.0
+    # via
+    #   dvc
+    #   dvc-data
+dvc-render==1.0.2
+    # via dvc
+dvc-studio-client==0.22.0
+    # via dvc
+dvc-task==0.40.2
+    # via dvc
+entrypoints==0.4
+    # via gto
+executing==2.2.1
+    # via stack-data
+fastapi==0.128.0
+    # via
+    #   mlflow-skinny
+    #   resume-recommender-mlops (pyproject.toml)
 filelock==3.20.3
     # via
     #   huggingface-hub
+    #   iterative-telemetry
     #   modelscope
     #   paddlex
-fsspec==2026.1.0
-    # via huggingface-hub
+flask==3.1.2
+    # via
+    #   flask-cors
+    #   mlflow
+flask-cors==6.0.2
+    # via mlflow
+flatten-dict==0.4.2
+    # via dvc
+flufl-lock==9.0.0
+    # via dvc
+fonttools==4.61.1
+    # via matplotlib
+frozenlist==1.8.0
+    # via
+    #   aiohttp
+    #   aiosignal
+fsspec[http,tqdm]==2026.1.0
+    # via
+    #   dvc
+    #   dvc-data
+    #   dvc-http
+    #   dvc-objects
+    #   huggingface-hub
+    #   scmrepo
+funcy==2.0
+    # via
+    #   dvc
+    #   dvc-data
+    #   dvc-objects
+    #   dvc-task
+    #   gto
+    #   scmrepo
 future==1.0.0
     # via bce-python-sdk
+gitdb==4.0.12
+    # via gitpython
+gitpython==3.1.46
+    # via
+    #   dagshub
+    #   mlflow-skinny
+    #   scmrepo
+google-auth==2.47.0
+    # via databricks-sdk
+google-search-results==2.4.2
+    # via resume-recommender-mlops (pyproject.toml)
+gql[requests]==4.0.0
+    # via dagshub
+grandalf==0.8
+    # via dvc
+graphene==3.4.3
+    # via mlflow
+graphql-core==3.2.7
+    # via
+    #   gql
+    #   graphene
+    #   graphql-relay
+graphql-relay==3.2.0
+    # via graphene
 greenlet==3.3.0
     # via sqlalchemy
+gto==1.9.0
+    # via dvc
 h11==0.16.0
     # via
     #   httpcore
@@ -59,111 +264,441 @@ hf-xet==1.2.0
 httpcore==1.0.9
     # via httpx
 httpx==0.28.1
-    # via huggingface-hub
+    # via
+    #   dagshub
+    #   huggingface-hub
+huey==2.6.0
+    # via mlflow
 huggingface-hub==1.3.2
     # via paddlex
+hydra-core==1.3.2
+    # via dvc
 idna==3.11
     # via
     #   anyio
     #   httpx
     #   requests
+    #   yarl
 imagesize==1.4.1
     # via paddlex
+importlib-metadata==8.7.1
+    # via
+    #   mlflow-skinny
+    #   opentelemetry-api
+ipykernel==7.1.0
+    # via resume-recommender-mlops (pyproject.toml)
+ipython==9.9.0
+    # via ipykernel
+ipython-pygments-lexers==1.1.1
+    # via ipython
+iterative-telemetry==0.0.10
+    # via dvc
+itsdangerous==2.2.0
+    # via flask
+jedi==0.19.2
+    # via ipython
+jinja2==3.1.6
+    # via flask
+jmespath==1.0.1
+    # via
+    #   boto3
+    #   botocore
+joblib==1.5.3
+    # via scikit-learn
+jupyter-client==8.8.0
+    # via ipykernel
+jupyter-core==5.9.1
+    # via
+    #   ipykernel
+    #   jupyter-client
+kiwisolver==1.4.9
+    # via matplotlib
+kombu==5.6.2
+    # via
+    #   celery
+    #   dvc
+    #   dvc-task
+langdetect==1.0.9
+    # via resume-recommender-mlops (pyproject.toml)
 lxml==6.0.2
-    # via python-docx
+    # via
+    #   dagshub-annotation-converter
+    #   python-docx
+    #   resume-recommender-mlops (pyproject.toml)
+mako==1.3.10
+    # via alembic
+markdown-it-py==4.0.0
+    # via rich
+markupsafe==3.0.3
+    # via
+    #   flask
+    #   jinja2
+    #   mako
+    #   werkzeug
+marshmallow==3.26.2
+    # via dataclasses-json
+matplotlib==3.10.8
+    # via mlflow
+matplotlib-inline==0.2.1
+    # via
+    #   ipykernel
+    #   ipython
+mdurl==0.1.2
+    # via markdown-it-py
+mlflow==3.8.1
+    # via resume-recommender-mlops (pyproject.toml)
+mlflow-skinny==3.8.1
+    # via mlflow
+mlflow-tracing==3.8.1
+    # via mlflow
 modelscope==1.34.0
     # via paddlex
+multidict==6.7.0
+    # via
+    #   aiohttp
+    #   yarl
+mypy-extensions==1.1.0
+    # via typing-inspect
+nest-asyncio==1.6.0
+    # via ipykernel
+networkx==3.6.1
+    # via dvc
 numpy==2.4.1
     # via
+    #   contourpy
+    #   matplotlib
+    #   mlflow
     #   opencv-contrib-python
     #   paddlex
     #   pandas
+    #   resume-recommender-mlops (pyproject.toml)
+    #   scikit-learn
+    #   scipy
     #   shapely
+omegaconf==2.3.0
+    # via
+    #   dvc
+    #   hydra-core
 opencv-contrib-python==4.10.0.84
     # via paddlex
+opentelemetry-api==1.39.1
+    # via
+    #   mlflow-skinny
+    #   mlflow-tracing
+    #   opentelemetry-sdk
+    #   opentelemetry-semantic-conventions
+opentelemetry-proto==1.39.1
+    # via
+    #   mlflow-skinny
+    #   mlflow-tracing
+opentelemetry-sdk==1.39.1
+    # via
+    #   mlflow-skinny
+    #   mlflow-tracing
+opentelemetry-semantic-conventions==0.60b1
+    # via opentelemetry-sdk
+orjson==3.11.5
+    # via
+    #   dvc-data
+    #   sqltrie
 packaging==25.0
     # via
+    #   dvc
     #   huggingface-hub
+    #   hydra-core
+    #   ipykernel
+    #   kombu
+    #   marshmallow
+    #   matplotlib
+    #   mlflow-skinny
+    #   mlflow-tracing
     #   paddlex
 paddleocr==3.3.3
     # via resume-recommender-mlops (pyproject.toml)
 paddlex[ocr-core]==3.3.13
     # via paddleocr
 pandas==2.3.3
-    # via paddlex
+    # via
+    #   dagshub
+    #   dagshub-annotation-converter
+    #   mlflow
+    #   paddlex
+    #   resume-recommender-mlops (pyproject.toml)
+parso==0.8.5
+    # via jedi
+pathspec==0.12.1
+    # via
+    #   dvc
+    #   scmrepo
+pathvalidate==3.3.1
+    # via dagshub
 pillow==12.1.0
-    # via paddlex
+    # via
+    #   dagshub-annotation-converter
+    #   matplotlib
+    #   paddlex
+platformdirs==4.5.1
+    # via
+    #   dvc
+    #   jupyter-core
 prettytable==3.17.0
     # via
     #   aistudio-sdk
     #   paddlex
+prompt-toolkit==3.0.52
+    # via
+    #   click-repl
+    #   ipython
+propcache==0.4.1
+    # via
+    #   aiohttp
+    #   yarl
+protobuf==6.33.4
+    # via
+    #   databricks-sdk
+    #   mlflow-skinny
+    #   mlflow-tracing
+    #   opentelemetry-proto
 psutil==7.2.1
-    # via aistudio-sdk
+    # via
+    #   aistudio-sdk
+    #   dvc
+    #   flufl-lock
+    #   ipykernel
 psycopg2-binary==2.9.11
     # via resume-recommender-mlops (pyproject.toml)
+pure-eval==0.2.3
+    # via stack-data
 py-cpuinfo==9.0.0
     # via paddlex
+pyarrow==22.0.0
+    # via mlflow
+pyasn1==0.6.2
+    # via
+    #   pyasn1-modules
+    #   rsa
+pyasn1-modules==0.4.2
+    # via google-auth
 pyclipper==1.4.0
     # via paddlex
+pycparser==3.0
+    # via cffi
 pycryptodome==3.23.0
     # via bce-python-sdk
 pydantic==2.12.5
     # via
+    #   dagshub-annotation-converter
     #   fastapi
+    #   gto
+    #   mlflow-skinny
+    #   mlflow-tracing
     #   paddlex
+    #   pydantic-settings
+    #   resume-recommender-mlops (pyproject.toml)
 pydantic-core==2.41.5
     # via pydantic
+pydantic-settings==2.12.0
+    # via gto
+pydot==4.0.1
+    # via dvc
+pygit2==1.19.1
+    # via scmrepo
+pygments==2.19.2
+    # via
+    #   ipython
+    #   ipython-pygments-lexers
+    #   rich
+pygtrie==2.5.0
+    # via
+    #   dvc
+    #   dvc-data
+    #   scmrepo
+    #   sqltrie
 pymupdf==1.26.7
     # via resume-recommender-mlops (pyproject.toml)
+pyparsing==3.3.2
+    # via
+    #   dvc
+    #   grandalf
+    #   matplotlib
+    #   pydot
 pypdfium2==5.3.0
     # via paddlex
 python-bidi==0.6.7
     # via paddlex
 python-dateutil==2.9.0.post0
-    # via pandas
+    # via
+    #   botocore
+    #   celery
+    #   dagshub
+    #   graphene
+    #   jupyter-client
+    #   matplotlib
+    #   pandas
+    #   resume-recommender-mlops (pyproject.toml)
 python-docx==1.2.0
     # via resume-recommender-mlops (pyproject.toml)
 python-dotenv==1.2.1
-    # via resume-recommender-mlops (pyproject.toml)
+    # via
+    #   mlflow-skinny
+    #   pydantic-settings
+    #   resume-recommender-mlops (pyproject.toml)
 pytz==2025.2
     # via pandas
+pywin32==311
+    # via
+    #   docker
+    #   dvc-task
 pyyaml==6.0.2
     # via
+    #   dagshub
+    #   dagshub-annotation-converter
     #   huggingface-hub
+    #   mlflow-skinny
+    #   omegaconf
     #   paddleocr
     #   paddlex
+pyzmq==27.1.0
+    # via
+    #   ipykernel
+    #   jupyter-client
 requests==2.32.5
     # via
     #   aistudio-sdk
+    #   databricks-sdk
+    #   docker
+    #   dvc
+    #   dvc-studio-client
+    #   google-search-results
+    #   gql
+    #   iterative-telemetry
+    #   mlflow-skinny
     #   modelscope
     #   paddleocr
     #   paddlex
+    #   requests-toolbelt
+    #   resume-recommender-mlops (pyproject.toml)
+requests-toolbelt==1.0.0
+    # via gql
+rich==14.2.0
+    # via
+    #   dagshub
+    #   dvc
+    #   gto
+    #   typer
+rsa==4.9.1
+    # via google-auth
 ruamel-yaml==0.19.1
-    # via paddlex
+    # via
+    #   dvc
+    #   gto
+    #   paddlex
+s3transfer==0.16.0
+    # via boto3
+scikit-learn==1.8.0
+    # via mlflow
+scipy==1.17.0
+    # via
+    #   mlflow
+    #   scikit-learn
+scmrepo==3.6.1
+    # via
+    #   dvc
+    #   gto
+semver==3.0.4
+    # via
+    #   dagshub
+    #   gto
 shapely==2.1.2
     # via paddlex
 shellingham==1.5.4
-    # via huggingface-hub
+    # via
+    #   huggingface-hub
+    #   typer
+shortuuid==1.0.13
+    # via
+    #   dvc
+    #   dvc-task
+shtab==1.8.0
+    # via dvc
 six==1.17.0
     # via
     #   bce-python-sdk
+    #   flatten-dict
+    #   langdetect
     #   python-dateutil
+    #   treelib
+smmap==5.0.2
+    # via gitdb
+soupsieve==2.8.3
+    # via beautifulsoup4
 sqlalchemy==2.0.45
-    # via resume-recommender-mlops (pyproject.toml)
+    # via
+    #   alembic
+    #   mlflow
+    #   resume-recommender-mlops (pyproject.toml)
+sqlparse==0.5.5
+    # via mlflow-skinny
+sqltrie==0.11.2
+    # via dvc-data
+stack-data==0.6.3
+    # via ipython
 starlette==0.50.0
     # via fastapi
+tabulate==0.9.0
+    # via
+    #   dvc
+    #   gto
+tenacity==9.1.2
+    # via dagshub
+threadpoolctl==3.6.0
+    # via scikit-learn
+tomlkit==0.14.0
+    # via dvc
+tornado==6.5.4
+    # via
+    #   ipykernel
+    #   jupyter-client
 tqdm==4.67.1
     # via
     #   aistudio-sdk
+    #   dvc
+    #   dvc-data
+    #   fsspec
     #   huggingface-hub
     #   modelscope
+    #   resume-recommender-mlops (pyproject.toml)
+    #   scmrepo
+traitlets==5.14.3
+    # via
+    #   ipykernel
+    #   ipython
+    #   jupyter-client
+    #   jupyter-core
+    #   matplotlib-inline
+treelib==1.8.0
+    # via dagshub
+typer==0.21.1
+    # via gto
 typer-slim==0.21.1
     # via huggingface-hub
 typing-extensions==4.15.0
     # via
+    #   aiosignal
+    #   alembic
     #   anyio
+    #   asyncssh
+    #   beautifulsoup4
+    #   dagshub-annotation-converter
+    #   dulwich
     #   fastapi
+    #   graphene
     #   huggingface-hub
+    #   ipython
+    #   mlflow-skinny
+    #   opentelemetry-api
+    #   opentelemetry-sdk
+    #   opentelemetry-semantic-conventions
     #   paddleocr
     #   paddlex
     #   pydantic
@@ -171,22 +706,65 @@ typing-extensions==4.15.0
     #   python-docx
     #   sqlalchemy
     #   starlette
+    #   typer
     #   typer-slim
+    #   typing-inspect
     #   typing-inspection
+typing-inspect==0.9.0
+    # via dataclasses-json
 typing-inspection==0.4.2
-    # via pydantic
+    # via
+    #   pydantic
+    #   pydantic-settings
 tzdata==2025.3
-    # via pandas
+    # via
+    #   kombu
+    #   pandas
+    #   tzlocal
+tzlocal==5.3.1
+    # via celery
 ujson==5.11.0
     # via paddlex
+unidecode==1.4.0
+    # via resume-recommender-mlops (pyproject.toml)
 urllib3==2.6.3
     # via
+    #   botocore
+    #   docker
+    #   dulwich
     #   modelscope
     #   requests
 uvicorn==0.40.0
-    # via resume-recommender-mlops (pyproject.toml)
+    # via
+    #   mlflow-skinny
+    #   resume-recommender-mlops (pyproject.toml)
+vine==5.1.0
+    # via
+    #   amqp
+    #   celery
+    #   kombu
+voluptuous==0.16.0
+    # via
+    #   dvc
+    #   dvc-studio-client
+waitress==3.0.2
+    # via mlflow
 wcwidth==0.2.14
-    # via prettytable
+    # via
+    #   prettytable
+    #   prompt-toolkit
+werkzeug==3.1.5
+    # via
+    #   flask
+    #   flask-cors
+yarl==1.22.0
+    # via
+    #   aiohttp
+    #   gql
+zc-lockfile==4.0
+    # via dvc
+zipp==3.23.0
+    # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

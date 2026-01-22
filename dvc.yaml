@@ -1,0 +1,15 @@
+stages:
+  ingest:
+    cmd: python data_ingestion/jd_ingestion/serp_api/serpapi_ingest.py
+    deps:
+      - data_ingestion/jd_ingestion/serp_api/serpapi_ingest.py
+      - data_ingestion/jd_ingestion/serp_api/serpapi_client.py   
+      - data_ingestion/jd_ingestion/serp_api/priority_scheduler.py 
+      - data/constants/jobs.csv
+      - data/constants/locations.yaml
+      - utils/paths.py 
+      - utils
+    params:
+      - ingestion
+    outs:
+      - data/raw/serpapi

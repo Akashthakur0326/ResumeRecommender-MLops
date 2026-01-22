@@ -1,0 +1,131 @@
+{
+  "job_title": "Web Developer",
+
+  "role_category": "Software Development",
+  "role_level": ["Junior", "Mid", "Senior"],
+
+  "role_summary": "High-level description of what a Web Developer does",
+
+  "primary_responsibilities": [
+    "Design and develop responsive web applications",
+    "Implement frontend user interfaces",
+    "Integrate backend APIs",
+    "Ensure performance, security, and scalability"
+  ],
+
+  "technical_skills": {
+    "frontend": ["HTML", "CSS", "JavaScript", "React", "Next.js"],
+    "backend": ["Node.js", "Express", "Django"],
+    "databases": ["MySQL", "PostgreSQL", "MongoDB"],
+    "version_control": ["Git", "GitHub"],
+    "deployment": ["Docker", "AWS", "Vercel"]
+  },
+
+  "programming_languages": [
+    "JavaScript",
+    "TypeScript",
+    "Python"
+  ],
+
+  "frameworks_and_libraries": [
+    "React",
+    "Angular",
+    "Vue",
+    "Express"
+  ],
+
+  "tools_and_platforms": [
+    "VS Code",
+    "GitHub Actions",
+    "Postman",
+    "Figma"
+  ],
+
+  "non_technical_skills": [
+    "Problem solving",
+    "Communication",
+    "Team collaboration"
+  ],
+
+  "educational_background": {
+    "preferred_degree": ["Computer Science", "Information Technology"],
+    "degree_required": false
+  },
+
+  "experience_requirements": {
+    "junior": "0–2 years",
+    "mid": "2–5 years",
+    "senior": "5+ years"
+  },
+
+  "common_projects": [
+    "Portfolio websites",
+    "REST API driven web apps",
+    "E-commerce platforms",
+    "Dashboards"
+  ],
+
+  "interview_topics": [
+    "JavaScript fundamentals",
+    "React lifecycle",
+    "HTTP and REST",
+    "System design basics",
+    "Web performance optimization"
+  ],
+
+  "common_tools_in_interviews": [
+    "LeetCode",
+    "CodePen",
+    "System design whiteboarding"
+  ],
+
+  "career_progression": [
+    "Junior Web Developer",
+    "Web Developer",
+    "Senior Web Developer",
+    "Frontend/Backend Lead",
+    "Full Stack Engineer"
+  ],
+
+  "related_roles": [
+    "Frontend Developer",
+    "Backend Developer",
+    "Full Stack Developer"
+  ],
+
+  "industry_domains": [
+    "SaaS",
+    "E-commerce",
+    "FinTech",
+    "EdTech"
+  ],
+
+  "salary_range_in_india": {
+    "junior": "30k–60k USD",
+    "mid": "60k–100k USD",
+    "senior": "100k+ USD"
+  },
+
+  "resume_keywords": [
+    "responsive design",
+    "REST APIs",
+    "SPA",
+    "CI/CD",
+    "cloud deployment"
+  ],
+  
+  "skill_taxonomy": {
+    "must_have": ["JavaScript", "HTML", "CSS"],
+    "good_to_have": ["TypeScript", "Next.js"],
+    "domain_specific": ["E-commerce", "SaaS"]
+  },
+  "complexity_signals": {
+    "high_impact_keywords": ["Architected", "Optimized", "Spearheaded", "Scaled"],
+    "valuable_certifications": ["AWS Certified Developer", "Meta Frontend Certificate"]
+  },
+  "alternative_titles": [
+    "Frontend Engineer",
+    "Product Engineer",
+    "Interface Developer"
+  ]
+}
