@@ -22,3 +22,12 @@ stages:
       - utils/            # Depends on utils logic
     outs:
       - data/processed/
+
+  label_scraped_jobs:
+    cmd: python src/label_jobs.py
+    deps:
+      - src/label_jobs.py
+      - data/processed/serpapi/  # Triggers if any month folder or CSV changes
+      - utils/
+    outs:
+      - data/final/

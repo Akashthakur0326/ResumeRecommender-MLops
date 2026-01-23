@@ -11,6 +11,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 RAW_SERPAPI_DIR = BASE_DIR / "data" / "raw" / "serpapi"
 PROCESSED_SERPAPI_DIR = BASE_DIR / "data" / "processed" / "serpapi"
 LOG_DIR = BASE_DIR / "logs" / "serpapi"
+FINAL_DIR = BASE_DIR / "data" / "final"
 
 JOBS_CSV_PATH = BASE_DIR / "data" / "constants" / "jobs.csv"
 LOCATIONS_YAML_PATH = BASE_DIR / "data" / "constants" / "locations.yaml"
@@ -26,6 +27,11 @@ def get_raw_run_dir(run_month: str) -> Path:
 def get_processed_data_path(run_month: str) -> Path:
     
     return PROCESSED_SERPAPI_DIR / run_month 
+
+
+def get_final_data_path(run_month: str) -> Path:
+    
+    return FINAL_DIR / run_month 
 
 def get_log_path(run_month: str) -> Path:
     """

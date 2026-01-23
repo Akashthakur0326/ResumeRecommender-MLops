@@ -1,0 +1,13 @@
+    prompt = f"""
+    You are an expert job classifier. 
+    Classify the following 100 jobs into exactly ONE of these categories:
+    {json.dumps(CATEGORIES)}
+
+    Instructions:
+    - Return a JSON dictionary where the key is the Job ID provided and the value is the Category.
+    - Use 'Other' if the job doesn't match any category.
+    - Output format: {{ "849": "Data Analyst", "277": "Data Engineer", ... }}
+
+    Jobs to Classify:
+    {jobs_text}
+    """

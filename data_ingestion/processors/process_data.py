@@ -5,6 +5,11 @@ from pathlib import Path
 import re
 from datetime import datetime
 
+import os
+import mlflow
+
+from dotenv import load_dotenv
+
 # Add project root to sys.path
 project_root = Path(__file__).resolve().parent.parent.parent
 if str(project_root) not in sys.path:
@@ -30,7 +35,7 @@ REQUIRED_SCHEMA = [
     "ingestion_timestamp",  
     "data_source",          
     "search_engine",
-    "llm_based_category",
+    "category",
     "job_link",             
     "apply_link"         
 ]
@@ -44,7 +49,7 @@ def clean_text(text: str) -> str:
     """
     Advanced text normalization for ML/RAG.
     1. Replaces newlines with spaces.
-    2. Collapses multiple spaces.
+    2. Collapses multiple spaces .
     3. Removes bullet points and common unicode artifacts.
     """
     if not text or not isinstance(text, str):
@@ -71,9 +76,11 @@ def load_raw_json_files(raw_dir: Path, logger) -> pd.DataFrame:
         raise FileNotFoundError(f"{raw_dir} does not exist")
 
     files = list(raw_dir.glob("*.json"))
+
     if not files:
-        logger.error(f"No JSON files found in {raw_dir}")
-        raise ValueError("Zero files to process. Pipeline stopped.")
+        logger.warning(f"No JSON files found in {raw_dir}. Skipping processing gracefully.")
+        import sys
+        sys.exit(0)
 
     for file_path in files:
         try:
@@ -119,6 +126,10 @@ def load_raw_json_files(raw_dir: Path, logger) -> pd.DataFrame:
     return pd.DataFrame(all_jobs)
 
 def main():
+    load_dotenv()
+    mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI"))
+    mlflow.set_experiment("data_processing_json_to_csv")
+
     run_month = current_run_month()
     processed_path = get_processed_data_path(run_month)
     log_path = processed_path.parent / "processing.log"
@@ -126,52 +137,107 @@ def main():
     logger = setup_logger(log_path, "data_processing")
     logger.info(f"Starting processing for {run_month}")
 
-    # 1. Load Data
+    # --- DATA INTEGRITY CHECK ---
     raw_dir = get_raw_run_dir(run_month)
-    df = load_raw_json_files(raw_dir, logger)
-
-    # --- FAIL-FAST CHECK 1: Volume ---
-    if len(df) < MIN_JOBS_THRESHOLD:
-        logger.critical(f"Extracted {len(df)} jobs. Threshold is {MIN_JOBS_THRESHOLD}.")
-        raise ValueError("Insufficient data extracted. Stopping pipeline.")
-
-    # 2. Add Lineage Columns & Placeholder
-    df["ingestion_month"] = run_month
-    df["llm_based_category"] = None # Matches REQUIRED_SCHEMA name
+    raw_files = list(raw_dir.glob("*.json"))
     
-    df["data_source"] = "serpapi"
-    df["search_engine"] = "google_jobs"
+    # 1. If there is absolutely no raw data, we must skip
+    if len(raw_files) == 0:
+        logger.warning(f"No JSON files found in {raw_dir}. Skipping processing gracefully.")
+        sys.exit(0)
 
-    # 3. Normalization (Text Cleaning)
-    logger.info("Normalizing text fields...")
-    text_cols = ["description", "title", "company_name"]
-    for col in text_cols:
-        df[col] = df[col].apply(clean_text)
+    # 2. If raw files exist, check if we need to (re)generate the CSV
+    should_run = False
+    if not processed_path.exists():
+        logger.info("Processed CSV is missing. Forcing run.")
+        should_run = True
+    else:
+        try:
+            existing_df = pd.read_csv(processed_path)
+            if len(existing_df) < MIN_JOBS_THRESHOLD:
+                logger.info("Processed CSV is empty. Forcing run.")
+                should_run = True
+        except Exception:
+            logger.warning("Existing CSV is corrupt. Forcing run.")
+            should_run = True
 
-    # 4. Schema Enforcement
-    logger.info("Enforcing schema...")
-    for col in REQUIRED_SCHEMA:
-        if col not in df.columns:
-            df[col] = None
-    
-    # 5. --- FAIL-FAST CHECK 2: Quality (MUST happen BEFORE fillna) ---
-    df = df.dropna(subset=["job_id"])
+    if not should_run:
+        logger.info(f"✅ Data integrity verified ({len(existing_df)} jobs). Skipping redundant work.")
+        return 
 
-    # 6. Final Formatting & Cleanup
-    df = df[REQUIRED_SCHEMA] # Final Fixed Column Order
-    df["salary"] = df["salary"].fillna("Not mentioned")
-    df.fillna("Unknown", inplace=True) # Now safe to fill remaining NaNs
+    # --- START PROCESSING ---
+    with mlflow.start_run(run_name=f"process_{run_month}"):
+        df_raw = load_raw_json_files(raw_dir, logger)
+        df_raw = load_raw_json_files(raw_dir, logger)
+        
+        # 1. Load Data
+        raw_dir = get_raw_run_dir(run_month)
+        df_raw = load_raw_json_files(raw_dir, logger)
+        
+        
+        input_count = len(df_raw)
 
-    # 7. Deterministic Sorting
-    logger.info("Sorting data for deterministic output...")
-    df.sort_values(by=["job_id", "company_name"], inplace=True)
+        df= df_raw.copy()
 
-    # 8. Save
-    processed_path.parent.mkdir(parents=True, exist_ok=True)
-    df.to_csv(processed_path, index=False)
-    
-    logger.info(f"Successfully processed {len(df)} jobs to {processed_path}")
+        # --- FAIL-FAST CHECK 1: Volume ---
+        if len(df) < MIN_JOBS_THRESHOLD:
+            logger.critical(f"Extracted {len(df)} jobs. Threshold is {MIN_JOBS_THRESHOLD}.")
+            raise ValueError("Insufficient data extracted. Stopping pipeline.")
 
+
+        # 2. Add Lineage Columns & Placeholder
+        df["ingestion_month"] = run_month
+        df["category"] = None # Matches REQUIRED_SCHEMA name
+        
+        df["data_source"] = "serpapi"
+        df["search_engine"] = "google_jobs"
+
+        # 3. Normalization (Text Cleaning)
+        logger.info("Normalizing text fields...")
+        text_cols = ["description", "title", "company_name"]
+        for col in text_cols:
+            df[col] = df[col].apply(clean_text)
+
+        # 4. Schema Enforcement
+        logger.info("Enforcing schema...")
+        for col in REQUIRED_SCHEMA:
+            if col not in df.columns:
+                df[col] = None
+        
+        # 5. --- FAIL-FAST CHECK 2: Quality (MUST happen BEFORE fillna) ---
+        df = df.dropna(subset=["job_id"])
+
+        # 6. Final Formatting & Cleanup
+        df = df[REQUIRED_SCHEMA] # Final Fixed Column Order
+        df["salary"] = df["salary"].fillna("Not mentioned")
+        df.fillna("Unknown", inplace=True) # Now safe to fill remaining NaNs
+
+        # 7. Deterministic Sorting
+        logger.info("Sorting data for deterministic output...")
+        df.sort_values(by=["job_id", "company_name"], inplace=True)      
+        
+        df = df.drop_duplicates(subset=["job_id"])
+        output_count = len(df)
+        
+        # 8. Save
+        processed_path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(processed_path, index=False)
+
+        salary_mentioned = (df["salary"] != "Not mentioned").sum()
+        salary_coverage = (salary_mentioned / output_count) * 100 if output_count > 0 else 0
+        drop_rate = ((input_count - output_count) / input_count) * 100 if input_count > 0 else 0
+
+        # Log to MLflow
+        mlflow.log_param("run_month", run_month)
+        mlflow.log_metric("input_rows", input_count)
+        mlflow.log_metric("output_rows", output_count)
+        mlflow.log_metric("drop_rate_pct", round(drop_rate, 2))
+        mlflow.log_metric("salary_coverage_pct", round(salary_coverage, 2))
+        
+        # Log the actual file as an artifact so you can see it in DagsHub
+        mlflow.log_artifact(str(processed_path))
+        
+        logger.info(f"Successfully processed {output_count} jobs to {processed_path}")
 
 if __name__ == "__main__":
     main()
