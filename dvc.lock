@@ -5,8 +5,8 @@ stages:
     deps:
     - path: data/constants/jobs.csv
       hash: md5
-      md5: da8b2321beccda6a164a1e254ddd25ff
-      size: 2506
+      md5: cf38cf334553d9dcebf25534e11256f0
+      size: 1620
     - path: data/constants/locations.yaml
       hash: md5
       md5: 835e0ab1523ebc559cd6476ed54c3dd4
@@ -25,66 +25,64 @@ stages:
       size: 5861
     - path: utils
       hash: md5
-      md5: 58ad749bb0226325b6faabd5344e5a26.dir
-      size: 2392
+      md5: eaf404e111306bf0d6571024a2271283.dir
+      size: 2557
       nfiles: 3
     - path: utils/paths.py
       hash: md5
-      md5: 924f883b33f602db4ae53a5e27540c92
-      size: 1279
+      md5: 52738ca3e488c5e5073ac0e3ae69b3a3
+      size: 1444
     params:
       params.yaml:
+        ingest.current_month: 2026-01
         serpapi_ingestion:
           max_api_calls: 255
     outs:
-    - path: data/raw/serpapi
+    - path: data/raw/serpapi/2026-01
       hash: md5
-      md5: 84e324c34c449bf89fd57d9294bbe368.dir
+      md5: 2b65a77b0001cf597dd612b3882d88e5.dir
       size: 10282108
       nfiles: 97
   process_jd_raw_jsons:
     cmd: python data_ingestion\processors\process_data.py
     deps:
-    - path: data/raw/serpapi
+    - path: data/raw/serpapi/2026-01
       hash: md5
-      md5: 84e324c34c449bf89fd57d9294bbe368.dir
+      md5: 2b65a77b0001cf597dd612b3882d88e5.dir
       size: 10282108
       nfiles: 97
     - path: data_ingestion/processors/process_data.py
       hash: md5
-      md5: 721d9bc6b59cd65995185e5c9bf8af05
-      size: 6091
+      md5: 453dfe6d8e90ad9220c78693c06d0d8d
+      size: 8766
     - path: utils/
       hash: md5
-      md5: 58ad749bb0226325b6faabd5344e5a26.dir
-      size: 2392
+      md5: eaf404e111306bf0d6571024a2271283.dir
+      size: 2557
       nfiles: 3
     outs:
-    - path: data/processed/
+    - path: data/processed/serpapi/2026-01.csv
       hash: md5
-      md5: e63feb6b79bd387126f1a5d9331e873f.dir
-      size: 4075888
-      nfiles: 1
+      md5: 6ec92ed3c00f8d6681d4e6fbae8ce2bb
+      size: 4075878
   label_scraped_jobs:
     cmd: python src/label_jobs.py
     deps:
-    - path: data/processed/serpapi/
+    - path: data/processed/serpapi/2026-01.csv
       hash: md5
-      md5: 0f593e2d6f2f2f2d6b95473737636f63.dir
+      md5: 6ec92ed3c00f8d6681d4e6fbae8ce2bb
       size: 4075878
-      nfiles: 1
     - path: src/label_jobs.py
       hash: md5
-      md5: 1d5f2f3effe0a0465c668561fcf8034d
-      size: 3071
+      md5: 0fe36dad5021323bc6fa6ce1cc766b00
+      size: 3061
     - path: utils/
       hash: md5
-      md5: 83e31e20e92327dd0bc305e6acb3902d.dir
-      size: 2528
+      md5: eaf404e111306bf0d6571024a2271283.dir
+      size: 2557
       nfiles: 3
     outs:
-    - path: data/final/
+    - path: data/final/serpapi/2026-01.csv
       hash: md5
-      md5: 5914f864d2de94e796dea3f24aeccbc4.dir
+      md5: 591dacfb99207cad60180040e0b47961
       size: 4084699
-      nfiles: 1

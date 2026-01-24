@@ -26,12 +26,12 @@ def get_raw_run_dir(run_month: str) -> Path:
 
 def get_processed_data_path(run_month: str) -> Path:
     
-    return PROCESSED_SERPAPI_DIR / run_month 
+    return PROCESSED_SERPAPI_DIR / f"{run_month}.csv" 
 
 
 def get_final_data_path(run_month: str) -> Path:
     
-    return FINAL_DIR / run_month 
+    return FINAL_DIR / f"{run_month}.csv" 
 
 def get_log_path(run_month: str) -> Path:
     """

@@ -2,134 +2,94 @@ ResumeRecommenderMLops/
 │
 ├── .github/
 │   └── workflows/
-│       └── serpapi_data_ingestion.yml     # GitHub Actions pipeline for automated JD ingestion
+│       └── serpapi_data_ingestion_monthly.yml # Automated Monthly Ingestion (GitHub Actions)
 │
-├── app/                                   # Application layer (API / UI entrypoints)
-│   ├── api/                               # API routes (FastAPI)
-│   │   ├── health.py                      # Health & readiness checks
-│   │   ├── ingest.py                      # Triggers ingestion pipelines
-│   │   ├── match.py                       # Resume ↔ Job matching endpoints
-│   │   └── explain.py                     # Model explanations (why matched)
-│   │
-│   ├── core/                              # Core app utilities
-│   │   ├── config.py                     # Environment & settings loader
-│   │   ├── database.py                   # DB connection/session handling
-│   │   └── logging.py                    # Centralized logging config
-│   │
-│   ├── models/                            # Pydantic request/response schemas
-│   │   ├── resume.py
-│   │   ├── job.py
-│   │   └── category.py
-│   │
-│   ├── services/                          # Business logic (thin, ML-agnostic)
-│   │   ├── ingestion_service.py
-│   │   ├── scoring_service.py
-│   │   └── explanation_service.py
-│   │
-│   └── main.py                            # FastAPI application entrypoint
+├── artifacts/                                # DVC-tracked ML artifacts (Model weights, scalers)
 │
-├── artifacts/                             # Versioned ML artifacts (DVC-tracked)
-│   ├── embeddings/                        # Stored vector embeddings
-│   ├── faiss/                             # FAISS indices for retrieval
-│   ├── pca/                               # Dimensionality reduction artifacts
-│   └── models/                            # Trained ML models
+├── data/                                     # Data storage (DVC managed)
+│   ├── labeled_jobs_for_training.csv         # Historical ground-truth labels for classifiers
+│   ├── synthetic_for_training.csv            # Generated data for model cold-starts
+│   ├── constants/                            # Static reference configs
+│   │   ├── jobs.csv                          # Canonical job titles for matching
+│   │   ├── locations.yaml                    # Geography normalization rules
+│   │   └── KB/
+│   │       └── detailed_job_descriptions.json # Domain knowledge for LLM labeling
+│   ├── final/                                # Production-ready labeled datasets
+│   │   └── serpapi/
+│   │       └── 2026-01.csv                   # Categorized job results
+│   ├── processed/                            # Normalized intermediate data
+│   │   └── serpapi/
+│   │       ├── 2026-01.csv                   # Cleaned but unlabeled CSV
+│   │       └── processing.log                # In-folder data transformation logs
+│   └── raw/                                  # Immutable ingestion point
+│       └── serpapi/
+│           └── 2026-01/                      # Monthly folder containing raw JSON pages
 │
-├── data/                                  # DVC-managed datasets (NO hardcoding paths)
-│   ├── constants/                         # Static reference data
-│   │   ├── jobs.csv                       # Canonical job titles
-│   │   └── locations.yaml                 # Location normalization config
-│   │
-│   ├── raw/                               # Raw ingested data (immutable)
-│   │   └── serpapi/                       # Job data fetched via SerpAPI (date-partitioned)
-│   │
-│   └── processed/                         # Cleaned & normalized datasets
+├── data_ingestion/                           # Multi-source ingestion logic
+│   ├── jd_ingestion/                         # Job Description (JD) sources
+│   │   ├── bright_data/                      # Logic for alternate data scraping
+│   │   └── serp_api/
+│   │       ├── priority_scheduler.py          # Logic for job prioritization per run
+│   │       ├── serpapi_client.py             # API wrapper for Google Jobs
+│   │       └── serpapi_ingest.py             # Main execution script for JD fetch
+│   ├── processors/
+│   │   └── process_data.py                   # Normalizes raw JSON to clean CSV
+│   └── resume_ingestion/                     # User-side data ingestion
+│       ├── docx_ingest.py                    # Extraction logic for Word docs
+│       ├── image_ingest.py                   # OCR logic for image-based resumes
+│       └── pdf_ingest.py                     # Extraction logic for PDF resumes
 │
-├── data_ingestion/                        # Data ingestion pipelines
-│   ├── jd_ingestion/                      # Job description ingestion
-│   │   ├── bright_data/                   # (Optional) Alternate JD source
-│   │   └── serp_api/                      # SerpAPI ingestion logic
-│   │       ├── serpapi_client.py          # API client wrapper
-│   │       ├── serpapi_ingest.py          # Core ingestion logic
-│   │       └── priority_scheduler.py      # Smart scheduling & retries
-│   │
-│   └── resume_ingestion/                  # Resume ingestion pipelines
-│       ├── pdf_ingest.py                  # PDF resume parsing
-│       ├── docx_ingest.py                 # DOCX resume parsing
-│       └── image_ingest.py                # OCR-based image resume parsing
+├── db/                                       # (Placeholder) Persistent database storage
 │
-├── db/                                    # Database layer
-│   ├── migrations/                        # Alembic migrations
-│   └── schemas.md                         # Human-readable DB design
+├── logs/                                     # System-wide logging
+│   ├── pipeline/
+│   │   └── pipeline_mgmt.log                 # Logs for update_params and DVC orchestration
+│   └── serpapi/
+│       └── 2026-01.log                       # Detailed API logs for specific months
 │
-├── infra/                                 # Infrastructure & deployment
-│   ├── docker/                            # Dockerfiles for services
-│   ├── terraform/                         # (Optional) IaC definitions
-│   └── ci/                                # CI/CD helpers
+├── mlruns/                                   # Local MLflow tracking data (Experiments)
 │
-├── logs/                                  # Runtime & pipeline logs
-│   └── serpapi/                           # SerpAPI ingestion logs (date-rotated)
+├── notebooks/                                # Experimentation & EDA
+│   ├── n1.ipynb                              # General scratchpad
+│   ├── rr_categorizer_experimentation.ipynb  # Local model training testing
+│   └── rr_categorizing_data_gemini.ipynb     # LLM-based labeling R&D
 │
-├── ml/                                    # Core ML logic (framework-agnostic)
-│   ├── embeddings/                        # Text embedding generation
-│   │   ├── embedder.py
-│   │   └── pca.py
-│   │
-│   ├── classifiers/                       # Resume & JD classifiers
-│   │   ├── resume_classifier.py
-│   │   └── job_category_classifier.py
-│   │
-│   ├── retrieval/                         # Similarity search & scoring
-│   │   ├── faiss_index.py
-│   │   └── scorer.py
-│   │
-│   ├── drift/                             # Data & concept drift detection
-│   │   ├── data_drift.py
-│   │   ├── centroid_drift.py
-│   │   └── skill_drift.py
-│   │
-│   └── pipelines/                         # Training & evaluation pipelines
-│       ├── train.py
-│       ├── evaluate.py
-│       └── retrain.py
+├── prompts/                                  # LLM Engineering (Prompt Management)
+│   ├── gemini_based_labelling_prompt.txt     # System prompt for LLM categorization
+│   └── job_description_KB.txt                # Context window data for RAG/Labeling
 │
-├── notebooks/                             # Experimentation & EDA
-│   └── n1.ipynb
+├── src/                                      # Core production logic
+│   ├── label_jobs.py                         # Production inference for categorization
+│   └── update_params.py                      # Automated Regex-based params sync
 │
-├── prompts/                               # Prompt templates (LLM / explanations)
-│   └── job_description_KB.txt
+├── utils/                                    # Shared foundational utilities
+│   ├── dates.py                              # UTC and string-date handling
+│   ├── logger.py                             # Standardized logging setup
+│   └── paths.py                              # Centralized Pathlib management
 │
-├── scripts/                               # One-off & maintenance scripts
-│   ├── ingest_jobs.py
-│   ├── ingest_resumes.py
-│   └── rebuild_index.py
-│
-├── ui/                                    # Streamlit or frontend UI
-│   └── app.py
-│
-├── utils/                                 # Shared utilities
-│   ├── dates.py
-│   ├── logger.py
-│   └── paths.py
-│
-├── .dvcignore                             # DVC ignore rules
-├── dvc.yaml                               # DVC pipeline definitions
-├── dvc.lock                               # Locked pipeline state
-├── params.yaml                            # Centralized pipeline parameters
-├── requirements.txt                       # Python dependencies
-├── pyproject.toml                         # Project metadata & tooling
-├── README.md                              # Project documentation
-├── status.txt                             # Pipeline / project status notes
-└── .env                                   # Local environment variables (gitignored)
+├── .dvcignore                                # DVC exclusion rules
+├── .env                                      # Secrets (SERP_API_KEY, MLFLOW_URI)
+├── .gitattributes                            # Git LFS/Config attributes
+├── .gitignore                                # Git exclusion rules
+├── dvc.lock                                  # DVC state hash (critical for reproducibility)
+├── dvc.yaml                                  # Pipeline stage definitions (Ingest->Process->Label)
+├── mlflow.db                                 # SQLite backend for MLflow tracking
+├── params.yaml                               # Centralized configuration (Month, API limits)
+├── pyproject.toml                            # Metadata & build system config
+├── README.md                                 # Project documentation
+├── requirements.txt                          # Production dependencies
+├── resume_recommender_mlops.egg-info/        # Local package installation metadata
+└── status.txt                                # Manual tracking of pipeline health/notes
 
 
 concerns 
 --> making a parameter based postgreSQL for proper jump bw local setup and cloud setup based db
---> linking the data ingestion cycle to the dvc pipeline 
 --> setting up a corn job for the data ingestion for jd and setting them up with the dp 
 
 
 REMINDER 
 --> remember to take data/constants out of git ignore and add it to be tracked by git tracking it with dvc creates conflict 
+--> always run python src/update_params.py before every dvc repro as that updates the params.yaml to current month-year
 
 
 TO DO 

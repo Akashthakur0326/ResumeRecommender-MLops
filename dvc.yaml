@@ -19,7 +19,7 @@ stages:
     cmd: python data_ingestion\processors\process_data.py
     deps:
       - data_ingestion/processors/process_data.py
-      - data/raw/serpapi  # Depends on the raw folder
+      - data/raw/serpapi/${ingest.current_month}  # Depends on the raw folder
       - utils/            # Depends on utils logic
     outs:
       - data/processed/serpapi/${ingest.current_month}.csv
@@ -28,7 +28,7 @@ stages:
     cmd: python src/label_jobs.py
     deps:
       - src/label_jobs.py
-      - data/processed/serpapi/  # Triggers if any month folder or CSV changes
+      - data/processed/serpapi/${ingest.current_month}.csv  # Triggers if any month folder or CSV changes
       - utils/
     outs:
       - data/final/serpapi/${ingest.current_month}.csv

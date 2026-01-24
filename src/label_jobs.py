@@ -16,15 +16,24 @@ if str(project_root) not in sys.path:
     sys.path.append(str(project_root))
 
 from utils.logger import setup_logger
-from utils.paths import PROCESSED_SERPAPI_DIR, FINAL_DIR, get_log_path
+# We now import get_processed_data_path and get_final_data_path directly
+from utils.paths import get_processed_data_path, get_final_data_path, get_log_path
 from utils.dates import current_run_month
 
 def run_labeling_pipeline():
-    log_file_path = get_log_path(current_run_month())
+    # 1. Identify the Specific Target for this Run
+    # This ensures we only label the data DVC is currently tracking/running
+    run_month = current_run_month()
+    
+    # Get precise file paths (e.g., .../processed/serpapi/2026-01.csv)
+    input_path = get_processed_data_path(run_month)
+    output_path = get_final_data_path(run_month)
+    
+    log_file_path = get_log_path(run_month)
     logger = setup_logger(log_path=log_file_path, logger_name="job_labeler")
     
     # Ensure output directory exists for DVC
-    FINAL_DIR.mkdir(parents=True, exist_ok=True)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
 
     MODEL_NAME = "Job_Categorizer_Production"
     model_uri = f"models:/{MODEL_NAME}@champion"
@@ -38,45 +47,39 @@ def run_labeling_pipeline():
         logger.error(f"❌ Failed to load model: {str(e)}")
         return
 
-    if not PROCESSED_SERPAPI_DIR.exists():
-        logger.warning(f"⚠️ Source directory {PROCESSED_SERPAPI_DIR} not found.")
+    # 2. Validation: Ensure the specific input file exists
+    if not input_path.exists():
+        logger.error(f"⚠️ Source file {input_path} not found. Did the 'process' stage fail?")
         return
 
-    # rglob("*") finds everything recursively. We then filter manually.
-    for file_path in PROCESSED_SERPAPI_DIR.rglob("*"):
+    logger.info(f"🔍 Processing data file: {input_path.name}")
+    
+    try:
+        # Pandas will read it as a CSV
+        df = pd.read_csv(input_path)
+
+        # Basic Validation
+        if 'title' not in df.columns:
+            logger.error(f"❌ 'title' column missing in {input_path.name}")
+            return
         
-        # --- NEW LOGIC: Filter for files, ignore logs ---
-        if file_path.is_file() and file_path.suffix != ".log":
-            logger.info(f"🔍 Found data file: {file_path.name} (Suffix: {file_path.suffix})")
-            
-            try:
-                # Pandas will read it as a CSV even without the .csv extension
-                df = pd.read_csv(file_path)
+        if df.empty:
+            logger.warning(f"⏩ {input_path.name} is empty. Skipping.")
+            return
 
-                if 'title' not in df.columns:
-                    continue
-                
-                if df.empty:
-                    logger.warning(f"⏩ {file_path.name} is empty. Skipping.")
-                    continue
+        # 3. Preprocessing (Same logic as before)
+        X_input = (df['title'].fillna('') + " " + df['description'].fillna('')).astype(str)
+        
+        # 4. Inference
+        df['category'] = model.predict(X_input)
+        
+        # 5. Save to the specific DVC-tracked output path
+        # If input is processed/serpapi/2026-01.csv, output is final/serpapi/2026-01.csv
+        df.to_csv(output_path, index=False)
+        logger.info(f"✅ Saved {len(df)} labeled rows to {output_path}")
 
-                # Preprocessing
-                X_input = (df['title'].fillna('') + " " + df['description'].fillna('')).astype(str)
-                
-                # Inference
-                df['category'] = model.predict(X_input)
-                
-                # Maintain same folder structure in FINAL_DIR
-                # If input is serpapi/2026-01, output is final/2026-01.csv
-                relative_path = file_path.relative_to(PROCESSED_SERPAPI_DIR)
-                output_path = (FINAL_DIR / relative_path).with_suffix(".csv")
-                output_path.parent.mkdir(parents=True, exist_ok=True)
-                
-                df.to_csv(output_path, index=False)
-                logger.info(f"✅ Saved {len(df)} labeled rows to {output_path}")
-
-            except Exception as e:
-                logger.error(f"❌ Could not process {file_path.name}: {str(e)}")
+    except Exception as e:
+        logger.error(f"❌ Could not process {input_path.name}: {str(e)}")
 
     logger.info("🏁 Labeling pipeline complete.")
 
