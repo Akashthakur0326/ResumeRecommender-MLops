@@ -40,3 +40,7 @@ artifacts/
 
 #temp 
 .github
+
+# MLflow local database
+mlflow.db
+mlruns/

@@ -32,7 +32,8 @@ dependencies = [
     "pydantic",
     "python-dotenv",
     "langdetect",
-    "unidecode"  
+    "unidecode",
+    "nbstripout"  
 ]
 
 [tool.setuptools.packages.find]
