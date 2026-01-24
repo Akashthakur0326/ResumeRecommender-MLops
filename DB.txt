@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS job_embeddings (
+    job_id TEXT PRIMARY KEY,          -- The ID from SerpAPI (e.g., "SAzGoncB...")
+    job_title TEXT NOT NULL,          -- For display
+    category TEXT NOT NULL,           -- THE FILTER: "Software Engineering", "Data Science"
+    location TEXT,                    -- Secondary Filter: "Mumbai", "Remote"
+    description_embedding vector(768),-- The MPNet Embeddings (768 dims)
+    metadata JSONB,                   -- Catch-all: salary, apply_link, company_name, etc.
+    ingestion_month VARCHAR(7),       -- "2026-01" (For data versioning)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

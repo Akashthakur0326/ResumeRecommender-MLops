@@ -78,8 +78,7 @@ ResumeRecommenderMLops/
 ├── pyproject.toml                            # Metadata & build system config
 ├── README.md                                 # Project documentation
 ├── requirements.txt                          # Production dependencies
-├── resume_recommender_mlops.egg-info/        # Local package installation metadata
-└── status.txt                                # Manual tracking of pipeline health/notes
+└──resume_recommender_mlops.egg-info/        # Local package installation metadata
 
 
 concerns 

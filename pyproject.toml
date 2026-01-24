@@ -12,7 +12,7 @@ dependencies = [
     "fastapi",
     "uvicorn",
     "sqlalchemy",
-    "psycopg2-binary",
+    "psycopg2-binary",  # Standard choice for local dev
     "python-dotenv",
     "python-docx",
     "paddleocr",
@@ -30,11 +30,14 @@ dependencies = [
     "tqdm",
     "python-dateutil",
     "pydantic",
-    "python-dotenv",
     "langdetect",
     "unidecode",
     "nbstripout",
-    "ruamel.yaml"  
+    "ruamel.yaml",
+    "pgvector",
+    "sentence-transformers>=3.0.0", # Prevents ancient version resolution
+    "transformers>=4.40.0",
+    "tokenizers>=0.19.0"
 ]
 
 [tool.setuptools.packages.find]

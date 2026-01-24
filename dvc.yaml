@@ -32,3 +32,17 @@ stages:
       - utils/
     outs:
       - data/final/serpapi/${ingest.current_month}.csv
+
+  build_vector_store:
+    cmd: python src/vector_db/ingest.py
+    deps:
+      - src/vector_db/ingest.py
+      - src/vector_db/client.py
+      - src/vector_db/encoder.py
+      - data/final/serpapi/${ingest.current_month}.csv
+      - utils/
+    params:
+      - ingest.current_month
+    outs:
+    - data/final/serpapi/${ingest.current_month}.vector_done:
+        cache: false #This output should NOT be cached, versioned, or restored by DVC “Because the actual output of the stage is a database side effect, which DVC cannot track. The sentinel file acts as a deterministic completion marker for the pipeline, while cache: false prevents DVC from falsely restoring state it cannot reproduce

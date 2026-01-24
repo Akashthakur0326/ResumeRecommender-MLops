@@ -101,7 +101,6 @@ click==8.3.1
     #   flask
     #   mlflow-skinny
     #   typer
-    #   typer-slim
     #   uvicorn
 click-didyoumean==0.3.1
     # via celery
@@ -197,6 +196,8 @@ filelock==3.20.3
     #   iterative-telemetry
     #   modelscope
     #   paddlex
+    #   torch
+    #   transformers
 flask==3.1.2
     # via
     #   flask-cors
@@ -221,6 +222,7 @@ fsspec[http,tqdm]==2026.1.0
     #   dvc-objects
     #   huggingface-hub
     #   scmrepo
+    #   torch
 funcy==2.0
     # via
     #   dvc
@@ -263,18 +265,18 @@ h11==0.16.0
     # via
     #   httpcore
     #   uvicorn
-hf-xet==1.2.0
-    # via huggingface-hub
 httpcore==1.0.9
     # via httpx
 httpx==0.28.1
-    # via
-    #   dagshub
-    #   huggingface-hub
+    # via dagshub
 huey==2.6.0
     # via mlflow
-huggingface-hub==1.3.2
-    # via paddlex
+huggingface-hub==0.36.0
+    # via
+    #   paddlex
+    #   sentence-transformers
+    #   tokenizers
+    #   transformers
 hydra-core==1.3.2
     # via dvc
 idna==3.11
@@ -302,7 +304,9 @@ itsdangerous==2.2.0
 jedi==0.19.2
     # via ipython
 jinja2==3.1.6
-    # via flask
+    # via
+    #   flask
+    #   torch
 jmespath==1.0.1
     # via
     #   boto3
@@ -362,6 +366,8 @@ mlflow-tracing==3.8.1
     # via mlflow
 modelscope==1.34.0
     # via paddlex
+mpmath==1.3.0
+    # via sympy
 multidict==6.7.0
     # via
     #   aiohttp
@@ -375,7 +381,9 @@ nbstripout==0.9.0
 nest-asyncio==1.6.0
     # via ipykernel
 networkx==3.6.1
-    # via dvc
+    # via
+    #   dvc
+    #   torch
 numpy==2.4.1
     # via
     #   contourpy
@@ -384,10 +392,12 @@ numpy==2.4.1
     #   opencv-contrib-python
     #   paddlex
     #   pandas
+    #   pgvector
     #   resume-recommender-mlops (pyproject.toml)
     #   scikit-learn
     #   scipy
     #   shapely
+    #   transformers
 omegaconf==2.3.0
     # via
     #   dvc
@@ -426,6 +436,7 @@ packaging==25.0
     #   mlflow-skinny
     #   mlflow-tracing
     #   paddlex
+    #   transformers
 paddleocr==3.3.3
     # via resume-recommender-mlops (pyproject.toml)
 paddlex[ocr-core]==3.3.13
@@ -445,6 +456,8 @@ pathspec==0.12.1
     #   scmrepo
 pathvalidate==3.3.1
     # via dagshub
+pgvector==0.4.2
+    # via resume-recommender-mlops (pyproject.toml)
 pillow==12.1.0
     # via
     #   dagshub-annotation-converter
@@ -571,6 +584,7 @@ pyyaml==6.0.2
     #   omegaconf
     #   paddleocr
     #   paddlex
+    #   transformers
 pyzmq==27.1.0
     # via
     #   ipykernel
@@ -579,6 +593,8 @@ referencing==0.37.0
     # via
     #   jsonschema
     #   jsonschema-specifications
+regex==2026.1.15
+    # via transformers
 requests==2.32.5
     # via
     #   aistudio-sdk
@@ -588,6 +604,7 @@ requests==2.32.5
     #   dvc-studio-client
     #   google-search-results
     #   gql
+    #   huggingface-hub
     #   iterative-telemetry
     #   mlflow-skinny
     #   modelscope
@@ -595,6 +612,7 @@ requests==2.32.5
     #   paddlex
     #   requests-toolbelt
     #   resume-recommender-mlops (pyproject.toml)
+    #   transformers
 requests-toolbelt==1.0.0
     # via gql
 rich==14.2.0
@@ -617,12 +635,17 @@ ruamel-yaml==0.19.1
     #   resume-recommender-mlops (pyproject.toml)
 s3transfer==0.16.0
     # via boto3
+safetensors==0.7.0
+    # via transformers
 scikit-learn==1.8.0
-    # via mlflow
+    # via
+    #   mlflow
+    #   sentence-transformers
 scipy==1.17.0
     # via
     #   mlflow
     #   scikit-learn
+    #   sentence-transformers
 scmrepo==3.6.1
     # via
     #   dvc
@@ -631,12 +654,12 @@ semver==3.0.4
     # via
     #   dagshub
     #   gto
+sentence-transformers==5.2.0
+    # via resume-recommender-mlops (pyproject.toml)
 shapely==2.1.2
     # via paddlex
 shellingham==1.5.4
-    # via
-    #   huggingface-hub
-    #   typer
+    # via typer
 shortuuid==1.0.13
     # via
     #   dvc
@@ -667,6 +690,8 @@ stack-data==0.6.3
     # via ipython
 starlette==0.50.0
     # via fastapi
+sympy==1.14.0
+    # via torch
 tabulate==0.9.0
     # via
     #   dvc
@@ -675,8 +700,14 @@ tenacity==9.1.2
     # via dagshub
 threadpoolctl==3.6.0
     # via scikit-learn
+tokenizers==0.22.2
+    # via
+    #   resume-recommender-mlops (pyproject.toml)
+    #   transformers
 tomlkit==0.14.0
     # via dvc
+torch==2.10.0
+    # via sentence-transformers
 tornado==6.5.4
     # via
     #   ipykernel
@@ -691,6 +722,8 @@ tqdm==4.67.1
     #   modelscope
     #   resume-recommender-mlops (pyproject.toml)
     #   scmrepo
+    #   sentence-transformers
+    #   transformers
 traitlets==5.14.3
     # via
     #   ipykernel
@@ -699,12 +732,14 @@ traitlets==5.14.3
     #   jupyter-core
     #   matplotlib-inline
     #   nbformat
+transformers==4.57.6
+    # via
+    #   resume-recommender-mlops (pyproject.toml)
+    #   sentence-transformers
 treelib==1.8.0
     # via dagshub
 typer==0.21.1
     # via gto
-typer-slim==0.21.1
-    # via huggingface-hub
 typing-extensions==4.15.0
     # via
     #   aiosignal
@@ -728,10 +763,11 @@ typing-extensions==4.15.0
     #   pydantic-core
     #   python-docx
     #   referencing
+    #   sentence-transformers
     #   sqlalchemy
     #   starlette
+    #   torch
     #   typer
-    #   typer-slim
     #   typing-inspect
     #   typing-inspection
 typing-inspect==0.9.0
