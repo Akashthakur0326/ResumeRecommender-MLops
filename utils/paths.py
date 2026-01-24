@@ -11,7 +11,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 RAW_SERPAPI_DIR = BASE_DIR / "data" / "raw" / "serpapi"
 PROCESSED_SERPAPI_DIR = BASE_DIR / "data" / "processed" / "serpapi"
 LOG_DIR = BASE_DIR / "logs" / "serpapi"
-FINAL_DIR = BASE_DIR / "data" / "final"
+FINAL_DIR = BASE_DIR / "data" / "final"/ "serpapi"
 
 JOBS_CSV_PATH = BASE_DIR / "data" / "constants" / "jobs.csv"
 LOCATIONS_YAML_PATH = BASE_DIR / "data" / "constants" / "locations.yaml"

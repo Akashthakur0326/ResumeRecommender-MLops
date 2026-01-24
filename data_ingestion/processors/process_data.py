@@ -132,6 +132,9 @@ def main():
 
     run_month = current_run_month()
     processed_path = get_processed_data_path(run_month)
+    if not str(processed_path).endswith(".csv"):
+            processed_path = processed_path.with_suffix(".csv")
+
     log_path = processed_path.parent / "processing.log"
     
     logger = setup_logger(log_path, "data_processing")

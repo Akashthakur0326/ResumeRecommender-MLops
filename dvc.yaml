@@ -11,8 +11,9 @@ stages:
       - utils
     params:
       - serpapi_ingestion
+      - ingest.current_month
     outs:
-      - data/raw/serpapi
+      - data/raw/serpapi/${ingest.current_month}
     
   process_jd_raw_jsons:
     cmd: python data_ingestion\processors\process_data.py
@@ -21,7 +22,7 @@ stages:
       - data/raw/serpapi  # Depends on the raw folder
       - utils/            # Depends on utils logic
     outs:
-      - data/processed/
+      - data/processed/serpapi/${ingest.current_month}.csv
 
   label_scraped_jobs:
     cmd: python src/label_jobs.py
@@ -30,4 +31,4 @@ stages:
       - data/processed/serpapi/  # Triggers if any month folder or CSV changes
       - utils/
     outs:
-      - data/final/
+      - data/final/serpapi/${ingest.current_month}.csv

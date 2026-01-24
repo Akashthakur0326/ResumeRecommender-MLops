@@ -133,12 +133,6 @@ REMINDER
 
 
 TO DO 
---> get processed csv out of yaml
---> define each 53 category using gemini 
---> categorize each field of the csv on the given categories 
-
---> train a classifirer on it 
---> track diff models used in classifier 
 --> make a embedding space for each category
 --> add it to postgreSQL as a faiss index 
 

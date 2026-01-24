@@ -6,3 +6,6 @@ serpapi_ingestion:
 filenames:
   jobs_data: "jobs.csv"
   locations_data: "locations.yaml"
+
+ingest:
+  current_month: "a"
