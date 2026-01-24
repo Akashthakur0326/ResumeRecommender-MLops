@@ -33,7 +33,8 @@ dependencies = [
     "python-dotenv",
     "langdetect",
     "unidecode",
-    "nbstripout"  
+    "nbstripout",
+    "ruamel.yaml"  
 ]
 
 [tool.setuptools.packages.find]

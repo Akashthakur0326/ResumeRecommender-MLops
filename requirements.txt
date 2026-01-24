@@ -614,6 +614,7 @@ ruamel-yaml==0.19.1
     #   dvc
     #   gto
     #   paddlex
+    #   resume-recommender-mlops (pyproject.toml)
 s3transfer==0.16.0
     # via boto3
 scikit-learn==1.8.0
