@@ -31,7 +31,11 @@ artifacts/
 
 # Data & artifacts
 artifacts/
+# Ignore the raw data folder
+artifacts/nltk_data/
 
+# But DO NOT ignore the .dvc files that track them
+!artifacts/*.dvc
 # Logs
 *.log
 
@@ -40,7 +44,18 @@ artifacts/
 
 #temp 
 .github
+docker_compose.yml
 
 # MLflow local database
 mlflow.db
 mlruns/
+
+# --- DVC / ML Models ---
+# Ignore all model weights/artifacts
+models/**
+
+# EXCEPT for the .dvc metadata files (The receipts)
+!models/**/.dvc
+
+# EXCEPT for the .gitignore files DVC might create inside subfolders
+!models/**/.gitignore
