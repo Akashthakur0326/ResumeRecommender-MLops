@@ -4,7 +4,7 @@ __pycache__/
 *.pyo
 *.pyd
 
-# Distribution / Packaging (Add this!)
+# Distribution / Packaging
 *.egg-info/
 dist/
 build/
@@ -14,10 +14,6 @@ venv*/
 .venv*/
 env*/
 
-# Python cache
-__pycache__/
-*.pyc
-
 # Secrets
 .env
 
@@ -26,23 +22,20 @@ __pycache__/
 data/**
 # BUT do not ignore the .dvc files inside data
 !data/**/.dvc
-artifacts/
-
 
 # Data & artifacts
-artifacts/
-# Ignore the raw data folder
-artifacts/nltk_data/
-
+# Ignore the raw data folder content
+artifacts/*
 # But DO NOT ignore the .dvc files that track them
 !artifacts/*.dvc
+
 # Logs
 *.log
 
 # OS
 .DS_Store
 
-#temp 
+# temp 
 .github
 docker_compose.yml
 
@@ -53,9 +46,7 @@ mlruns/
 # --- DVC / ML Models ---
 # Ignore all model weights/artifacts
 models/**
-
 # EXCEPT for the .dvc metadata files (The receipts)
 !models/**/.dvc
-
 # EXCEPT for the .gitignore files DVC might create inside subfolders
 !models/**/.gitignore

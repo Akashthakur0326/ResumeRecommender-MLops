@@ -1,5 +1,6 @@
 import streamlit as st
 import sys
+import requests
 from pathlib import Path
 
 # 1. Path Management
@@ -7,54 +8,117 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.append(str(ROOT_DIR))
 
-from app.services.resume_extractor import ResumeExtractor
+from data_ingestion.resume_ingestion.factory import IngestorFactory
+from src.parser.engine import ResumeParserEngine
 
-# --- PAGE CONFIG ---
-st.set_page_config(page_title="Resume Parser Pro", layout="wide")
+# --- CONFIG ---
+API_BASE_URL = "http://127.0.0.1:8000"
+st.set_page_config(page_title="Resume Intelligence", layout="wide", page_icon="🧠")
 
-# --- CACHING LOGIC ---
-@st.cache_resource(show_spinner="⚙️ Loading Extraction Models (OCR + PDF)...")
-def load_extractor():
-    """
-    Initializes the ResumeExtractor singleton.
-    Cached because loading PaddleOCR takes 2-5 seconds.
-    """
-    return ResumeExtractor()
+# --- CACHING ---
+@st.cache_resource
+def get_ingestor_factory():
+    return IngestorFactory()
 
-# Initialize Logic (This is now instant on re-runs)
-extractor = load_extractor()
+@st.cache_resource
+def get_parser_engine():
+    return ResumeParserEngine()
 
-# --- UI LAYOUT ---
-st.title("📄 Resume Ingestion & Parsing")
-st.markdown("Upload your resume (PDF, DOCX, or Image) to extract raw text.")
+@st.cache_data(show_spinner="🧠 Analyzing Resume Structure...")
+def parse_resume_content(file_name, _text):
+    parser = get_parser_engine()
+    return parser.parse(_text)
 
-# Drag & Drop Widget
-uploaded_file = st.file_uploader(
-    "Drag and drop file here", 
-    type=["pdf", "docx", "jpg", "png", "jpeg"],
-    help="Limit 200MB per file"
-)
+# --- STATE ---
+if "parsed_data" not in st.session_state:
+    st.session_state.parsed_data = None
+if "raw_text" not in st.session_state:
+    st.session_state.raw_text = None
+if "file_name" not in st.session_state:
+    st.session_state.file_name = None
+
+st.title("📄 Resume Intelligence Parser")
+
+# --- UPLOAD & PARSE ---
+uploaded_file = st.file_uploader("Upload Resume", type=["pdf", "docx", "txt"])
 
 if uploaded_file:
-    with st.spinner('Parsing document...'):
-        # Get file type (MIME or extension)
-        file_type = uploaded_file.type if uploaded_file.type else uploaded_file.name.split('.')[-1]
-        
-        # Call the Service Layer
-        extracted_text = extractor.extract(uploaded_file, file_type)
-        
-        # UI Layout
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.success("✅ Extraction Complete")
-            st.info(f"File: {uploaded_file.name}")
-            st.info(f"Size: {uploaded_file.size / 1024:.2f} KB")
+    if st.session_state.file_name != uploaded_file.name:
+        with st.spinner("Analyzing Document..."):
+            try:
+                factory = get_ingestor_factory() 
+                ext = Path(uploaded_file.name).suffix.lower()
+                ingestor = factory.get_ingestor(ext)
+                raw_text = ingestor.extract(uploaded_file)
+                
+                # Store in session
+                st.session_state.parsed_data = parse_resume_content(uploaded_file.name, raw_text)
+                st.session_state.raw_text = raw_text 
+                st.session_state.file_name = uploaded_file.name
+                
+            except Exception as e:
+                st.error(f"❌ Error during ingestion/parsing: {e}")
 
-        with col2:
-            st.subheader("Extracted Content Preview")
-            st.text_area("Raw Text", extracted_text, height=400)
-            
-            # Future Hook for Scorer
-            if st.button(" Analyze & Score (Coming Soon)"):
-                st.warning("⚠️ Scorer module not connected yet.")
+# --- DISPLAY RESULTS ---
+if st.session_state.parsed_data:
+    data = st.session_state.parsed_data
+    
+    # NEW: Display Candidate Name prominently
+    candidate_name = data.get('name', 'Unknown Candidate')
+    st.header(f"👤 {candidate_name}")
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.info(f"📧 **Email:** {data.get('email', 'Not found')}")
+    with col2:
+        edu = data.get('education', [])
+        st.info(f"🎓 **Education:** {', '.join(edu) if edu else 'Not detected'}")
+    with col3:
+        exp = data.get('experience', [])
+        st.info(f"💼 **Experience:** {len(exp)} entries found")
+
+    # Layout for Skills and Sections
+    tab1, tab2 = st.tabs(["🛠️ Skills Detected", "📑 Structure Analysis"])
+    
+    with tab1:
+        skills = data.get('skills', [])
+        if skills:
+            st.write(", ".join([f"`{s}`" for s in skills]))
+        else:
+            st.warning("No skills detected.")
+
+    with tab2:
+    # We need to make sure engine.py returns the full sections dict, not just the keys
+        sections_content = data.get('sections_content', {}) 
+        
+        if sections_content:
+            st.write("**Content by Section:**")
+            for section_name, lines in sections_content.items():
+                with st.expander(f"📍 {section_name}"):
+                    # Join the list of lines into a block of text
+                    st.text("\n".join(lines))
+        else:
+            st.warning("No structured sections found. Using raw text fallback.")
+    st.divider()
+
+    # --- SCORING ACTION ---
+    if st.button("🚀 Find Matching Jobs", type="primary"):
+        with st.spinner("Talking to Inference Engine..."):
+            try:
+                payload = {
+                    "name": candidate_name, # Use the extracted name
+                    "text": st.session_state.raw_text,
+                    "job_id": "job_123" 
+                }
+                res = requests.post(f"{API_BASE_URL}/candidates/score", json=payload, timeout=10)
+                
+                if res.status_code == 200:
+                    result = res.json()
+                    score = result.get('similarity_score', 0) * 100
+                    st.success(f"✅ Match Score: {score:.1f}%")
+                    with st.expander("View Similarity Metadata"):
+                        st.json(result)
+                else:
+                    st.error(f"Backend Error: {res.text}")
+            except Exception as e:
+                st.error(f"❌ Connection Error: Ensure FastAPI server is running on port 8000")

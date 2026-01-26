@@ -92,8 +92,8 @@ def main():
         # 8. LOAD: Database Insertion
         try:
             data_tuples = []
-            for i, row in df_new.iterrows():
-                # Prepare metadata as a searchable JSONB blob
+            # FIX: Use enumerate to safely map embeddings back to rows
+            for idx, (original_i, row) in enumerate(df_new.iterrows()):
                 meta_payload = {
                     "company": row.get('company_name'),
                     "salary": row.get('salary'),
@@ -106,11 +106,11 @@ def main():
                     row['title'],               # Display
                     row['category'],            # Filter
                     row.get('location', 'N/A'), # Filter
-                    embeddings[i],              # 768-dim Vector
+                    embeddings[idx],              # 768-dim Vector
                     Json(meta_payload),         # JSONB Data
                     CURR_MONTH                  # Version
                 ))
-
+        
             # Strictly follow the 'No Re-embedding' rule with ON CONFLICT DO NOTHING
             insert_query = """
                 INSERT INTO job_embeddings 

@@ -20,15 +20,35 @@ PARAMS_PATH = BASE_DIR / "params.yaml"
 
 KB_JSON_PATH = BASE_DIR / "data" / "constants" / "KB" / "detailed_job_descriptions.json"
 
+
+DATA_DIR = BASE_DIR / "data"
+LOG_DIR = BASE_DIR / "logs"
+MODEL_DIR = BASE_DIR / "models"
+
+# Data Paths
+DATA_DIR = BASE_DIR / "data"
+CONSTANTS_DIR = DATA_DIR / "constants"
+SKILLS_CSV_PATH = CONSTANTS_DIR / "skills.csv"
+
+# Artifacts (DVC Tracked)
+ARTIFACTS_DIR = BASE_DIR / "artifacts"
+NLTK_DATA_PATH = ARTIFACTS_DIR / "nltk_data"
+
+#Helper to ensure a directory exists before returning it
+def _ensure(path: Path) -> Path:
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
 def get_raw_run_dir(run_month: str) -> Path:
     """
     this is a helper fn which helps when we run a cron job to make folders acc to date of the month that job had been run on 
     """
-    return RAW_SERPAPI_DIR / run_month 
+    return _ensure(DATA_DIR / "raw" / "serpapi" / run_month) 
 
 def get_processed_data_path(run_month: str) -> Path:
     
-    return PROCESSED_SERPAPI_DIR / f"{run_month}.csv" 
+    _ensure(DATA_DIR / "processed" / "serpapi")
+    return DATA_DIR / "processed" / "serpapi" / f"{run_month}.csv" 
 
 
 def get_final_data_path(run_month: str) -> Path:
@@ -39,6 +59,11 @@ def get_log_path(run_month: str) -> Path:
     """
     Creates a per-run log file
     """
-    path = LOG_DIR / f"{run_month}.log"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    return path
+    _ensure(LOG_DIR / "serpapi")
+    return LOG_DIR / "serpapi" / f"{run_month}.log"
+
+def get_model_path(model_name: str) -> Path:
+    """
+    Points to the DVC-tracked model folder
+    """
+    return MODEL_DIR / model_name

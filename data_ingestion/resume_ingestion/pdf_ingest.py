@@ -1,6 +1,10 @@
-#PDF → PyMuPDF → text
+import fitz
+from .base_ingestor import BaseIngestor
 
-import fitz  # PyMuPDF
-
-doc = fitz.open("resume.pdf")
-text = "".join(page.get_text() for page in doc)
+class PDFIngestor(BaseIngestor):
+    def extract(self, file_stream) -> str:
+        text = ""
+        with fitz.open(stream=file_stream, filetype="pdf") as doc:
+            for page in doc:
+                text += page.get_text() + "\n"
+        return text.strip()
