@@ -18,6 +18,8 @@ LOCATIONS_YAML_PATH = BASE_DIR / "data" / "constants" / "locations.yaml"
 
 PARAMS_PATH = BASE_DIR / "params.yaml"
 
+KB_JSON_PATH = BASE_DIR / "data" / "constants" / "KB" / "detailed_job_descriptions.json"
+
 def get_raw_run_dir(run_month: str) -> Path:
     """
     this is a helper fn which helps when we run a cron job to make folders acc to date of the month that job had been run on 

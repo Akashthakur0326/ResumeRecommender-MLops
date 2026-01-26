@@ -8,3 +8,27 @@ CREATE TABLE IF NOT EXISTS job_embeddings (
     ingestion_month VARCHAR(7),       -- "2026-01" (For data versioning)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- The Speed Layer (Indexes)
+-- HNSW Index: Makes vector search O(log n) instead of O(n)
+CREATE INDEX IF NOT EXISTS idx_vec_search 
+ON job_embeddings USING hnsw (description_embedding vector_cosine_ops);
+
+-- B-Tree Index: Makes filtering by category instant
+CREATE INDEX IF NOT EXISTS idx_category 
+ON job_embeddings (category);
+
+docker exec -it resume-postgres psql -U postgres -d postgres -c "
+CREATE TABLE IF NOT EXISTS role_definitions (
+    role_id SERIAL PRIMARY KEY,
+    job_title TEXT UNIQUE,
+    internal_category TEXT,
+    priority_tier TEXT,
+    
+    -- The 'Vibe' (Used for fast retrieval)
+    anchor_embedding vector(768), # contain role summary resposiblity experience etc 
+    
+    -- The 'Checklist' (Used for detailed scoring)
+    full_definition JSONB, #contain skill , experience , education etc
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP #version tracking 
+);"

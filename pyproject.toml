@@ -37,7 +37,10 @@ dependencies = [
     "pgvector",
     "sentence-transformers>=3.0.0", # Prevents ancient version resolution
     "transformers>=4.40.0",
-    "tokenizers>=0.19.0"
+    "tokenizers>=0.19.0",
+    "streamlit",
+    "paddlepaddle",      # Required for OCR
+    "python-multipart"  # For file uploads
 ]
 
 [tool.setuptools.packages.find]

@@ -1,0 +1,4 @@
+THE THING THIS STAGE ACHIEVES 
+
+IT HELP A SMALL MODEL MAKE INFERENCES LIKE
+"This role requires Kubernetes (REQUIRES_TOOL). You have experience with Docker Swarm. Since both Docker Swarm and Kubernetes implement the concept of Container Orchestration (IMPLEMENTS_CONCEPT), your skills are highly transferable."
