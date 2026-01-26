@@ -1,0 +1,6 @@
+outs:
+- md5: 74464a06d17df0d0485d10dd3429f1ec.dir
+  size: 438926278
+  nfiles: 11
+  hash: md5
+  path: all-mpnet-base-v2
