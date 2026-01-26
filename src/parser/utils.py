@@ -48,15 +48,40 @@ def extract_name(text):
     return None
 
 def extract_education_refined(sections_dict, raw_text):
-    # Prefer structured sections, fallback to raw string
-    edu_text = " ".join(sections_dict.get("education", [])) if "education" in sections_dict else raw_text
+    """
+    Finds degrees AND University names using NER.
+    """
+    # Use the Education section if found, else search the whole thing
+    edu_text = " ".join(sections_dict.get("Education", [])) 
+    if not edu_text:
+        edu_text = raw_text
+
+    nlp = get_nlp()
+    doc = nlp(edu_text)
     
-    found_degrees = []
+    results = {
+        "degrees": [],
+        "institutions": []
+    }
+
+    # 1. Extract Degrees (Regex/Keyword)
     clean_edu = re.sub(r'[?|$|.|!|,]', '', edu_text)
     for word in clean_edu.split():
         if word.upper() in EDUCATION_DEGREES:
-            found_degrees.append(word.upper())
-    return list(set(found_degrees))
+            results["degrees"].append(word.upper())
+
+    # 2. Extract Institutions (NER: ORG)
+    # We look for Organizations within the education context
+    for ent in doc.ents:
+        if ent.label_ == "ORG":
+            # Filter for keywords like 'Institute', 'University', 'School', 'College'
+            if any(key in ent.text.lower() for key in ["institute", "university", "college", "school", "nie"]):
+                results["institutions"].append(ent.text)
+
+    # 3. Format for display
+    # We combine them into a list of strings for the UI
+    combined = list(set(results["degrees"])) + list(set(results["institutions"]))
+    return combined
 
 def extract_email(text: str):
     email = re.findall(EMAIL_REGEX, text)
@@ -77,9 +102,20 @@ def extract_skills(text: str, skills_list: list):
         if tg_str in skills_list: found_skills.add(tg_str)
     return list(found_skills)
 
-def extract_experience(text: str):
-    regex_matches = re.findall(r'(\d+\+?\s?(?:years|yrs|year)\s(?:of\s)?experience)', text, re.IGNORECASE)
+def extract_experience_refined(sections_dict, raw_text):
+    """
+    Better experience detection by prioritizing the 'Experience' section.
+    """
+    exp_text = " ".join(sections_dict.get("Experience", []))
+    if not exp_text:
+        exp_text = raw_text
+        
+    # Standard Regex for 'X years'
+    regex_matches = re.findall(r'(\d+\+?\s?(?:years|yrs|year)\s(?:of\s)?experience)', exp_text, re.IGNORECASE)
+    
+    # NER for Date Ranges (e.g., "June 2022 - Present")
     nlp = get_nlp()
-    doc = nlp(text)
-    ner_matches = [ent.text for ent in doc.ents if ent.label_ == "DATE" and "experience" in text[max(ent.start_char-20,0):ent.end_char+20].lower()]
-    return list(set(regex_matches + ner_matches))
+    doc = nlp(exp_text)
+    ner_dates = [ent.text for ent in doc.ents if ent.label_ == "DATE"]
+    
+    return list(set(regex_matches + ner_dates))

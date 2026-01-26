@@ -19,17 +19,18 @@ class ResumeParserEngine:
         return []
 
     def parse(self, raw_text: str) -> dict:
-        sections = self.classify_sections(raw_text)
-        
-        return {
-            "name": extract_name(raw_text),
-            "email": extract_email(raw_text),
-            "education": extract_education_refined(sections, raw_text),
-            "skills": extract_skills(raw_text, self.skills_list),
-            "experience": extract_experience(raw_text),
-            "sections_found": list(sections.keys()),
-            "sections_content": sections  # ✅ Pass the actual text back to the UI
-        }
+            sections = self.classify_sections(raw_text)
+            
+            # We pass 'sections' to our refined utils functions
+            return {
+                "name": utils.extract_name(raw_text),
+                "email": utils.extract_email(raw_text),
+                "education": utils.extract_education_refined(sections, raw_text), # Updated
+                "skills": utils.extract_skills(raw_text, self.skills_list),
+                "experience": utils.extract_experience_refined(sections, raw_text), # Updated
+                "sections_found": list(sections.keys()),
+                "sections_content": sections 
+            }
 
     def classify_sections(self, text):
         line_split = [line.strip() for line in text.split("\n") if line.strip()]
