@@ -1,9 +1,16 @@
 import pandas as pd
 from src.parser import constant
-# ✅ Direct imports to avoid circular dependency
+
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.append(str(ROOT))
+
 from src.parser.utils import (
     extract_name, extract_email, extract_skills, 
-    extract_education_refined, extract_experience
+    extract_education_refined, extract_experience_refined
 )
 from utils.paths import SKILLS_CSV_PATH
 
@@ -23,11 +30,11 @@ class ResumeParserEngine:
             
             # We pass 'sections' to our refined utils functions
             return {
-                "name": utils.extract_name(raw_text),
-                "email": utils.extract_email(raw_text),
-                "education": utils.extract_education_refined(sections, raw_text), # Updated
-                "skills": utils.extract_skills(raw_text, self.skills_list),
-                "experience": utils.extract_experience_refined(sections, raw_text), # Updated
+                "name": extract_name(raw_text),
+                "email": extract_email(raw_text),
+                "education": extract_education_refined(sections, raw_text), # Updated
+                "skills": extract_skills(raw_text, self.skills_list),
+                "experience": extract_experience_refined(sections, raw_text), # Updated
                 "sections_found": list(sections.keys()),
                 "sections_content": sections 
             }

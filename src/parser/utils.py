@@ -84,8 +84,14 @@ def extract_education_refined(sections_dict, raw_text):
     return combined
 
 def extract_email(text: str):
-    email = re.findall(EMAIL_REGEX, text)
-    return email[0].split()[0].strip() if email else None
+    # Standard, robust email regex (RFC 5322 compatibleish)
+    email_pattern = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
+    
+    matches = re.findall(email_pattern, text)
+    if matches:
+        # Return the first one found, stripped of any weird punctuation
+        return matches[0].strip()
+    return None
 
 def extract_skills(text: str, skills_list: list):
     text = clean_text(text).lower()

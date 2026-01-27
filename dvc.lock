@@ -25,13 +25,13 @@ stages:
       size: 5861
     - path: utils
       hash: md5
-      md5: eaf404e111306bf0d6571024a2271283.dir
-      size: 2557
+      md5: 442a35134c6ac9d304e03d3308c0626c.dir
+      size: 3356
       nfiles: 3
     - path: utils/paths.py
       hash: md5
-      md5: 52738ca3e488c5e5073ac0e3ae69b3a3
-      size: 1444
+      md5: 0728473125972b07483ab41af3ade3f4
+      size: 2243
     params:
       params.yaml:
         ingest.current_month: 2026-01
@@ -57,8 +57,8 @@ stages:
       size: 8766
     - path: utils/
       hash: md5
-      md5: eaf404e111306bf0d6571024a2271283.dir
-      size: 2557
+      md5: 442a35134c6ac9d304e03d3308c0626c.dir
+      size: 3356
       nfiles: 3
     outs:
     - path: data/processed/serpapi/2026-01.csv
@@ -78,8 +78,8 @@ stages:
       size: 3061
     - path: utils/
       hash: md5
-      md5: eaf404e111306bf0d6571024a2271283.dir
-      size: 2557
+      md5: 442a35134c6ac9d304e03d3308c0626c.dir
+      size: 3356
       nfiles: 3
     outs:
     - path: data/final/serpapi/2026-01.csv
@@ -99,16 +99,16 @@ stages:
       size: 1618
     - path: src/vector_db/encoder.py
       hash: md5
-      md5: 81c2d444c14791eaf865c9f91acaf116
-      size: 1575
+      md5: 13f005c12e5ce7df1de7cde13d8b1660
+      size: 3964
     - path: src/vector_db/ingest.py
       hash: md5
-      md5: a8a68292cae2fd16f1ff865689678011
-      size: 5604
+      md5: fb509e52fe713651ea5109e5bd6aa561
+      size: 5650
     - path: utils/
       hash: md5
-      md5: eaf404e111306bf0d6571024a2271283.dir
-      size: 2557
+      md5: 442a35134c6ac9d304e03d3308c0626c.dir
+      size: 3356
       nfiles: 3
     params:
       params.yaml:

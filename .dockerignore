@@ -1,0 +1,25 @@
+# Exclude local environments
+venv/
+.venv/
+env/
+
+# Exclude Git and DVC internal files
+.git/
+.dvc/
+!models/*.dvc
+
+# Exclude Python noise
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Exclude local logs and data
+logs/
+data/raw/
+data/processed/
+
+# Exclude IDE settings
+.vscode/
+.idea/

@@ -3,6 +3,11 @@ import sys
 import requests
 from pathlib import Path
 
+"""
+Accepts File -> Extracts Text -> Sends JSON Payload -> Displays Score
+"""
+import os
+
 # 1. Path Management
 ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
@@ -12,7 +17,10 @@ from data_ingestion.resume_ingestion.factory import IngestorFactory
 from src.parser.engine import ResumeParserEngine
 
 # --- CONFIG ---
-API_BASE_URL = "http://127.0.0.1:8000"
+# On Localhost, this defaults to "http://127.0.0.1:8000"
+# On AWS Docker, we change this env var to "http://backend_container:8000"
+API_BASE_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
+
 st.set_page_config(page_title="Resume Intelligence", layout="wide", page_icon="🧠")
 
 # --- CACHING ---
@@ -75,7 +83,14 @@ if st.session_state.parsed_data:
         st.info(f"🎓 **Education:** {', '.join(edu) if edu else 'Not detected'}")
     with col3:
         exp = data.get('experience', [])
-        st.info(f"💼 **Experience:** {len(exp)} entries found")
+        # Display the count as a label
+        st.info(f"💼 **Experience:** {len(exp)} items detected")
+        
+        # NEW: Actually show the items inside an expander
+        if exp:
+            with st.expander("View Experience Details"):
+                for i, item in enumerate(exp, 1):
+                    st.write(f"**{i}.** {item}")
 
     # Layout for Skills and Sections
     tab1, tab2 = st.tabs(["🛠️ Skills Detected", "📑 Structure Analysis"])
@@ -102,23 +117,75 @@ if st.session_state.parsed_data:
     st.divider()
 
     # --- SCORING ACTION ---
+    # ... inside ui/app.py ...
+
+    # --- SCORING ACTION ---
+    # --- SCORING ACTION ---
     if st.button("🚀 Find Matching Jobs", type="primary"):
-        with st.spinner("Talking to Inference Engine..."):
-            try:
-                payload = {
-                    "name": candidate_name, # Use the extracted name
-                    "text": st.session_state.raw_text,
-                    "job_id": "job_123" 
-                }
-                res = requests.post(f"{API_BASE_URL}/candidates/score", json=payload, timeout=10)
-                
-                if res.status_code == 200:
-                    result = res.json()
-                    score = result.get('similarity_score', 0) * 100
-                    st.success(f"✅ Match Score: {score:.1f}%")
-                    with st.expander("View Similarity Metadata"):
-                        st.json(result)
-                else:
-                    st.error(f"Backend Error: {res.text}")
-            except Exception as e:
-                st.error(f"❌ Connection Error: Ensure FastAPI server is running on port 8000")
+        if not st.session_state.raw_text:
+            st.error("Please process a resume first.")
+        else:
+            with st.spinner("Consulting the AI Engine..."):
+                try:
+                    # 1. Send Request to FastAPI
+                    payload = {"resume_text": st.session_state.raw_text}
+                    # Ensure API_URL is defined (e.g. from os.getenv)
+                    response = requests.post(f"{API_BASE_URL}/api/v1/score", json=payload, timeout=10)
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        
+                        if "results" in data:
+                            st.success("✅ Jobs Found! Here are your top matches:")
+                            
+                            # 2. Iterate through Top Categories
+                            for category_block in data["results"]:
+                                cat_name = category_block['category']
+                                match_score = category_block['category_match_score']
+                                
+                                # Category Header
+                                st.markdown(f"### 📂 {cat_name} <small>(Match: {match_score*100:.0f}%)</small>", unsafe_allow_html=True)
+                                st.info(f"🤖 **AI Insight:** Why you fit this role... (Coming Soon)")
+                                
+                                # 3. Job Cards
+                                jobs = category_block.get('recommended_jobs', [])
+                                if jobs:
+                                    for job in jobs:
+                                        # Expander Title: Role | Company | Score
+                                        label = f"**{job['title']}** | {job['company']} ({job['match_confidence']}% Match)"
+                                        
+                                        with st.expander(label):
+                                            # Create two columns for clean layout
+                                            c1, c2 = st.columns(2)
+                                            
+                                            with c1:
+                                                st.write(f"🏢 **Company:** {job['company']}")
+                                                st.write(f"📍 **Location:** {job['location']}")
+                                                st.write(f"💰 **Salary:** {job.get('salary', 'Not Disclosed')}")
+                                                
+                                            with c2:
+                                                st.write(f"📅 **Posted:** {job['posted_at']}")
+                                                st.write(f"🌐 **Source:** {job.get('source', 'Web')}")
+                                                
+                                                # Clickable Link
+                                                if job['apply_link'] and job['apply_link'] != "#":
+                                                    st.markdown(f"🔗 [**Apply Now**]({job['apply_link']})")
+                                                else:
+                                                    st.caption("No direct link available")
+                                            
+                                            # Debug info (optional, good for dev)
+                                            st.caption(f"Job ID: `{job['job_id']}`")
+                                else:
+                                    st.warning("No active listings found for this category.")
+                                
+                                st.divider() # Visual separation
+                        else:
+                            st.warning("No matches found. Try adding more skills to your resume.")
+                            
+                    else:
+                        st.error(f"Server Error: {response.text}")
+                        
+                except requests.exceptions.ConnectionError:
+                    st.error("❌ Could not connect to the Backend. Is FastAPI running?")
+                except Exception as e:
+                    st.error(f"❌ Unexpected Error: {e}")
