@@ -1,85 +1,79 @@
 ResumeRecommenderMLops/
+├── .github/workflows/          # CI/CD Automation
+│   ├── mlops_pipeline.yml      # Orchestrates DVC repro and model staging
+│   └── serpapi_data_ingestion_monthly.yml # Automated JD scraping schedule
 │
-├── .github/
-│   └── workflows/
-│       └── serpapi_data_ingestion_monthly.yml # Automated Monthly Ingestion (GitHub Actions)
+├── app/                        # Backend Service Layer (FastAPI)
+│   ├── api/
+│   │   └── main.py             # FastAPI entry point; handles model lifespan & routes
+│   └── services/
+│       └── score_resume.py     # Two-stage scoring logic (Category Match -> Job Match)
 │
-├── artifacts/                                # DVC-tracked ML artifacts (Model weights, scalers)
+├── artifacts/                  # DVC-Tracked non-model assets
+│   ├── nltk_data/              # Pre-downloaded NLTK corpora for text parsing
+│   └── nltk_data.dvc           # DVC pointer for NLTK assets
 │
-├── data/                                     # Data storage (DVC managed)
-│   ├── labeled_jobs_for_training.csv         # Historical ground-truth labels for classifiers
-│   ├── synthetic_for_training.csv            # Generated data for model cold-starts
-│   ├── constants/                            # Static reference configs
-│   │   ├── jobs.csv                          # Canonical job titles for matching
-│   │   ├── locations.yaml                    # Geography normalization rules
-│   │   └── KB/
-│   │       └── detailed_job_descriptions.json # Domain knowledge for LLM labeling
-│   ├── final/                                # Production-ready labeled datasets
-│   │   └── serpapi/
-│   │       └── 2026-01.csv                   # Categorized job results
-│   ├── processed/                            # Normalized intermediate data
-│   │   └── serpapi/
-│   │       ├── 2026-01.csv                   # Cleaned but unlabeled CSV
-│   │       └── processing.log                # In-folder data transformation logs
-│   └── raw/                                  # Immutable ingestion point
-│       └── serpapi/
-│           └── 2026-01/                      # Monthly folder containing raw JSON pages
+├── data/                       # Data Tier (DVC Managed)
+│   ├── raw/serpapi/            # Immutable storage for monthly raw JSON search results
+│   ├── processed/serpapi/      # Cleaned/Normalized CSVs ready for labeling
+│   ├── final/serpapi/          # Production CSVs with categories and vector flags
+│   ├── constants/              # Reference datasets (Job titles, Locations, Knowledge Base)
+│   └── labeled_jobs_for_training.csv # Ground truth for classification experiments
 │
-├── data_ingestion/                           # Multi-source ingestion logic
-│   ├── jd_ingestion/                         # Job Description (JD) sources
-│   │   ├── bright_data/                      # Logic for alternate data scraping
-│   │   └── serp_api/
-│   │       ├── priority_scheduler.py          # Logic for job prioritization per run
-│   │       ├── serpapi_client.py             # API wrapper for Google Jobs
-│   │       └── serpapi_ingest.py             # Main execution script for JD fetch
-│   ├── processors/
-│   │   └── process_data.py                   # Normalizes raw JSON to clean CSV
-│   └── resume_ingestion/                     # User-side data ingestion
-│       ├── docx_ingest.py                    # Extraction logic for Word docs
-│       ├── image_ingest.py                   # OCR logic for image-based resumes
-│       └── pdf_ingest.py                     # Extraction logic for PDF resumes
+├── data_ingestion/             # ETL Pipelines
+│   ├── jd_ingestion/           # Scripts to fetch Job Descriptions (SerpAPI/BrightData)
+│   ├── resume_ingestion/       # Parser factory (PDF, DOCX, Image OCR, TXT)
+│   ├── roles_ingestion/        # Script to populate 'role_definitions' in Postgres
+│   └── processors/             # Data cleaning and JSON-to-CSV transformation
 │
-├── db/                                       # (Placeholder) Persistent database storage
+├── db/                         # Database schema and migration scripts
+│   ├── cypher_defination.txt   # Graph DB/Neo4j query templates (if applicable)
+│   └── DB.txt                  # General SQL schema and notes
 │
-├── logs/                                     # System-wide logging
-│   ├── pipeline/
-│   │   └── pipeline_mgmt.log                 # Logs for update_params and DVC orchestration
-│   └── serpapi/
-│       └── 2026-01.log                       # Detailed API logs for specific months
+├── logs/                       # Centralized System Logging
+│   ├── scoring.log             # Tracks recommendation requests and scores
+│   ├── vector_db_ingestion.log # Logs for pgvector indexing progress
+│   ├── pipeline/               # Orchestration logs
+│   └── serpapi/                # API-specific ingestion logs
 │
-├── mlruns/                                   # Local MLflow tracking data (Experiments)
+├── mlruns/                     # MLflow experiment tracking data
 │
-├── notebooks/                                # Experimentation & EDA
-│   ├── n1.ipynb                              # General scratchpad
-│   ├── rr_categorizer_experimentation.ipynb  # Local model training testing
-│   └── rr_categorizing_data_gemini.ipynb     # LLM-based labeling R&D
+├── models/                     # Model Registry (DVC Managed)
+│   ├── all-mpnet-base-v2/      # Local weights for the Transformer encoder
+│   └── all-mpnet-base-v2.dvc   # DVC pointer for model weights
 │
-├── prompts/                                  # LLM Engineering (Prompt Management)
-│   ├── gemini_based_labelling_prompt.txt     # System prompt for LLM categorization
-│   └── job_description_KB.txt                # Context window data for RAG/Labeling
+├── notebooks/                  # R&D and Experimentation
+│   ├── rr_categorizer_experimentation.ipynb # Local classifier testing
+│   └── rr_categorizing_data_gemini.ipynb    # LLM-based zero-shot labeling R&D
 │
-├── src/                                      # Core production logic
-│   ├── label_jobs.py                         # Production inference for categorization
-│   └── update_params.py                      # Automated Regex-based params sync
+├── prompts/                    # LLM Engineering
+│   ├── gemini_based_labelling_prompt.txt    # System prompt for JD classification
+│   └── text_to_triplets_for_cyphers_prompt.txt # Prompt for Knowledge Graph extraction
 │
-├── utils/                                    # Shared foundational utilities
-│   ├── dates.py                              # UTC and string-date handling
-│   ├── logger.py                             # Standardized logging setup
-│   └── paths.py                              # Centralized Pathlib management
+├── scripts/                    # Maintenance & Debugging
+│   ├── debug_DB.py             # Checks database health and category alignment
+│   └── download_model_OT.py    # One-time script to fetch models from HF
 │
-├── .dvcignore                                # DVC exclusion rules
-├── .env                                      # Secrets (SERP_API_KEY, MLFLOW_URI)
-├── .gitattributes                            # Git LFS/Config attributes
-├── .gitignore                                # Git exclusion rules
-├── dvc.lock                                  # DVC state hash (critical for reproducibility)
-├── dvc.yaml                                  # Pipeline stage definitions (Ingest->Process->Label)
-├── mlflow.db                                 # SQLite backend for MLflow tracking
-├── params.yaml                               # Centralized configuration (Month, API limits)
-├── pyproject.toml                            # Metadata & build system config
-├── README.md                                 # Project documentation
-├── requirements.txt                          # Production dependencies
-└──resume_recommender_mlops.egg-info/        # Local package installation metadata
-
+├── src/                        # Production Logic
+│   ├── parser/                 # Resume parsing engine (Section extraction, cleaning)
+│   ├── vector_db/              # pgvector Client, Encoder, and Ingestion logic
+│   ├── label_jobs.py           # Production inference for JD labeling
+│   └── update_params.py        # Syncs Regex and logic across the pipeline
+│
+├── ui/                         # User Interface Layer
+│   └── app.py                  # Streamlit frontend for resume upload and job display
+│
+├── utils/                      # Shared Foundational Utilities
+│   ├── dates.py                # Formatting for monthly ingestion cycles
+│   ├── logger.py               # Standardized Loguru/Logging configuration
+│   └── paths.py                # Centralized Pathlib management for local/Docker
+│
+├── .env                        # Secrets (API Keys, DB Credentials)
+├── docker_compose.yml          # Local orchestration for FastAPI, Streamlit, & Postgres
+├── dvc.yaml                    # DVC pipeline DAG (Ingest -> Process -> Embed -> Label)
+├── params.yaml                 # Centralized hyperparameter and config management
+├── requirements.txt            # Python dependency manifest
+└── README.md                   # Project documentation and setup guide
 
 concerns 
 --> making a parameter based postgreSQL for proper jump bw local setup and cloud setup based db
@@ -92,15 +86,8 @@ REMINDER
 
 
 TO DO 
---> make a embedding space for each category
---> add it to postgreSQL as a faiss index 
 
---> make a resume ingetion cycle
---> make frontpage streamlit
---> make resume parser for docx,image,pdf
---> make a scorer for the given resume on each category 
-
---> make a KB out of all jd in csv and the categories define by gemini 
---> get cypher out of them 
---> add them to auraDB
---> make a connection bw auraDB and groq and try to infer and add reasoning 
+--> add the playwright based parser for naukri to current implementation
+--> generate all the possible cyphers 
+--> make a inference cycle using groq
+--> add the reasoning layer 

@@ -1,4 +1,5 @@
 [core]
     remote = myremote
 ['remote "myremote"']
-    url = G:\My Drive\rr_mlops\dvc
+    url = s3://resume-recommender-mlops-storage
+    profile = default

@@ -1,13 +1,13 @@
-import docx
 import io
+import docx
 from .base_ingestor import BaseIngestor
 
 class DOCXIngestor(BaseIngestor):
-    def extract(self, file_stream) -> str:
-        # Wrap bytes in BytesIO if it's not already a stream
-        if isinstance(file_stream, bytes):
-            file_stream = io.BytesIO(file_stream)
-        
-        doc = docx.Document(file_stream)
-        text = "\n".join([para.text for para in doc.paragraphs])
-        return text.strip()
+    def extract(self, file_content: bytes) -> str:
+        """Wraps bytes in a BytesIO stream for python-docx compatibility."""
+        try:
+            stream = io.BytesIO(file_content)
+            doc = docx.Document(stream)
+            return "\n".join([p.text for p in doc.paragraphs]).strip()
+        except Exception as e:
+            raise ValueError(f"Failed to parse DOCX: {str(e)}")

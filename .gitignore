@@ -50,3 +50,7 @@ models/**
 !models/**/.dvc
 # EXCEPT for the .gitignore files DVC might create inside subfolders
 !models/**/.gitignore
+
+
+!data\constants\jobs.csv
+!data/constants/locations.yaml

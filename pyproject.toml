@@ -16,7 +16,12 @@ dependencies = [
     "python-dotenv",
     "python-docx",
     "pymupdf",
-    "dvc",
+    
+    # --- THE FIX STARTS HERE ---
+    "dvc[s3]",              # Installs dvc and dvc-s3
+    "boto3>=1.34.0,<1.35.0", # FORCE this version range. (The "Goldilocks" Zone)
+    # ---------------------------
+
     "mlflow",
     "dagshub",
     "ipykernel",
@@ -39,7 +44,8 @@ dependencies = [
     "streamlit",
     "python-multipart",
     "nltk",
-    "spacy"
+    "spacy",
+    "neo4j~=5.28"
 ]
 
 [tool.setuptools.packages.find]

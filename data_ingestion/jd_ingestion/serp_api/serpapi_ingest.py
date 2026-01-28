@@ -17,7 +17,7 @@ if str(project_root) not in sys.path:
 # NOW you can import your utils
 
 from dotenv import load_dotenv
-from utils.dates import current_run_month
+from utils.dates import current_run_date
 from utils.paths import get_raw_run_dir, get_log_path, LOCATIONS_YAML_PATH, PARAMS_PATH
 from utils.logger import setup_logger
 from priority_scheduler import load_jobs_with_priority
@@ -73,7 +73,7 @@ def main():
     mlflow.set_tracking_uri(tracking_uri)
     mlflow.set_experiment("serpapi_ingestion")
 
-    run_month = current_run_month()
+    run_month = current_run_date()
     raw_dir = get_raw_run_dir(run_month)
     raw_dir.mkdir(parents=True, exist_ok=True)
 

@@ -1,0 +1,35 @@
+rank,job_title,internal_category,priority_tier
+1,Software Engineer,Software Engineering,High
+2,Software Developer,Software Engineering,High
+3,Backend Engineer,Backend Engineering,High
+4,Full Stack Developer,Full Stack Engineering,High
+5,Data Scientist,Data Science,High
+6,Machine Learning Engineer,Machine Learning Engineering,High
+7,Generative AI Engineer,AI / Deep Learning,High
+8,LLM Engineer,AI / Deep Learning,High
+9,Data Analyst,Data Analytics,High
+10,Data Engineer,Data Engineering,High
+11,AI Engineer,AI / Deep Learning,High
+12,Frontend Developer,Frontend Engineering,High
+13,Java Developer,Software Engineering,High
+14,DevOps Engineer,DevOps / Cloud,Medium
+15,Cloud Engineer,DevOps / Cloud,Medium
+16,NLP Engineer,AI / Deep Learning,Medium
+17,Computer Vision Engineer,AI / Deep Learning,Medium
+18,SQL Developer,Database Engineering,Low
+19,Business Intelligence Engineer,Data Analytics,Low
+20,Mobile Application Developer,Mobile Development,Low
+21,Android Developer,Mobile Development,Low
+22,Cybersecurity Engineer,Cybersecurity,Low
+23,Security Engineer,Cybersecurity,Low
+24,Embedded Systems Engineer,Embedded / Systems,Low
+25,Automation Test Engineer,QA / Testing,Low
+26,SDET,QA / Testing,Low
+27,Game Developer,Game / Graphics,Low
+28,Graphics Programmer,Game / Graphics,Low
+29,Technical Product Manager,Product / Solutions Engineering,Low
+30,Solutions Engineer,Product / Solutions Engineering,Low
+31,Product Engineer,Product / Solutions Engineering,Low
+32,Blockchain Developer,Web3 / Blockchain,Low
+33,RPA Developer,Automation,Low
+34,Salesforce Developer,Enterprise Software,Low

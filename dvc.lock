@@ -21,12 +21,12 @@ stages:
       size: 827
     - path: data_ingestion/jd_ingestion/serp_api/serpapi_ingest.py
       hash: md5
-      md5: 108ad826a6485aa45181bfde26d89db4
-      size: 5861
+      md5: 1635b1dd8de0dac9be5c2ee6bf13c6c2
+      size: 5859
     - path: utils
       hash: md5
-      md5: 442a35134c6ac9d304e03d3308c0626c.dir
-      size: 3356
+      md5: c253a5aee7e498485185a4912f88b3fb.dir
+      size: 3493
       nfiles: 3
     - path: utils/paths.py
       hash: md5
@@ -34,15 +34,15 @@ stages:
       size: 2243
     params:
       params.yaml:
-        ingest.current_month: 2026-01
+        ingest.current_month: '2026-01-28'
         serpapi_ingestion:
           max_api_calls: 255
     outs:
-    - path: data/raw/serpapi/2026-01
+    - path: data/raw/serpapi/2026-01-28
       hash: md5
-      md5: 2b65a77b0001cf597dd612b3882d88e5.dir
-      size: 10282108
-      nfiles: 97
+      md5: d751713988987e9331980363e24189ce.dir
+      size: 0
+      nfiles: 0
   process_jd_raw_jsons:
     cmd: python data_ingestion\processors\process_data.py
     deps:

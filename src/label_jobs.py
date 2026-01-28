@@ -18,12 +18,12 @@ if str(project_root) not in sys.path:
 from utils.logger import setup_logger
 # We now import get_processed_data_path and get_final_data_path directly
 from utils.paths import get_processed_data_path, get_final_data_path, get_log_path
-from utils.dates import current_run_month
+from utils.dates import current_run_date
 
 def run_labeling_pipeline():
     # 1. Identify the Specific Target for this Run
     # This ensures we only label the data DVC is currently tracking/running
-    run_month = current_run_month()
+    run_month = current_run_date()
     
     # Get precise file paths (e.g., .../processed/serpapi/2026-01.csv)
     input_path = get_processed_data_path(run_month)

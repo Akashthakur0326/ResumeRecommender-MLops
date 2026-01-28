@@ -2,6 +2,6 @@ filenames:
   jobs_data: "jobs.csv"
   locations_data: "locations.yaml"
 ingest:
-  current_month: "2026-01"
+  current_month: "2026-01-28"
 serpapi_ingestion:
   max_api_calls: 255

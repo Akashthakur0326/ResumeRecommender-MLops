@@ -1,6 +1,7 @@
 import sys
 import re
 from pathlib import Path
+from datetime import datetime
 
 # 1. Setup paths
 current_file = Path(__file__).resolve()
@@ -10,7 +11,8 @@ params_path = project_root / "params.yaml"
 if str(project_root) not in sys.path:
     sys.path.append(str(project_root))
 
-from utils.dates import current_run_month
+# CHANGE 1: Import the new daily function (or just format it here directly)
+from utils.dates import current_run_date 
 from utils.logger import setup_logger
 
 def main():
@@ -22,10 +24,11 @@ def main():
         logger.error(f"❌ {params_path} not found!")
         return
 
-    new_month = current_run_month()
+    # CHANGE 2: Use the full date instead of just month
+    # This makes the param "2026-01-28"
+    new_batch_id = current_run_date()
     
     try:
-        # 2. Read lines and strip trailing whitespace/newlines immediately
         with open(params_path, "r", encoding="utf-8") as f:
             lines = [line.rstrip() for line in f.readlines()]
         
@@ -33,11 +36,10 @@ def main():
         found = False
 
         for line in lines:
-            # 3. Use a precise match for the key
             if "current_month:" in line:
-                # Capture the leading indentation (whitespace) to keep the YAML valid
                 indent = re.match(r"^(\s*)", line).group(1)
-                line = f'{indent}current_month: "{new_month}"'
+                # CHANGE 3: Update the value
+                line = f'{indent}current_month: "{new_batch_id}"'
                 found = True
             new_lines.append(line)
 
@@ -45,12 +47,10 @@ def main():
             logger.warning("⚠️ 'current_month:' key not found!")
             return
 
-        # 4. Write back with a single newline joining them
-        # This prevents the "stacking" of newlines
         with open(params_path, "w", encoding="utf-8") as f:
             f.write("\n".join(new_lines) + "\n")
             
-        logger.info(f"✅ params.yaml updated: current_month is now \"{new_month}\"")
+        logger.info(f"✅ params.yaml updated: current_month is now \"{new_batch_id}\"")
 
     except Exception as e:
         logger.error(f"❌ Update failed: {str(e)}")

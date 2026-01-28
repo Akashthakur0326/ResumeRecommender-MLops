@@ -1,3 +1,5 @@
+#seed script --> runs only once here we defined all of the job catogries and made the role_defination table for once 
+
 import sys
 import json
 import pandas as pd
