@@ -44,13 +44,15 @@ mlflow.db
 mlruns/
 
 # --- DVC / ML Models ---
-# Ignore all model weights/artifacts
-models/**
-# EXCEPT for the .dvc metadata files (The receipts)
-!models/**/.dvc
-# EXCEPT for the .gitignore files DVC might create inside subfolders
+# 1. Ignore the heavy weight folders specifically
+models/all-mpnet-base-v2/
+
+# 2. Ensure the .dvc files are NEVER ignored
+!models/*.dvc
+!models/**/*.dvc
+
+# 3. Ensure DVC internal gitignores are kept
 !models/**/.gitignore
 
-
-!data\constants\jobs.csv
+!data/constants/jobs.csv
 !data/constants/locations.yaml

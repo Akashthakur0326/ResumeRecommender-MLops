@@ -1,7 +1,13 @@
 filenames:
-  jobs_data: "jobs.csv"
-  locations_data: "locations.yaml"
+  jobs_data: jobs.csv
+  locations_data: locations.yaml
 ingest:
-  current_month: "2026-01-28"
+  current_month: "2026-01-29"
+ml_models:
+  job_labeler:
+    name: Job_Categorizer_Production
+    version_alias: champion
+  vector_encoding:
+    batch_size: 16
 serpapi_ingestion:
-  max_api_calls: 255
+  max_api_calls: 2500
