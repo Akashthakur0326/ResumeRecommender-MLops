@@ -1,3 +1,5 @@
+#seed script --> runs only once here we pair up the mpnet model to our backend using DVC 
+
 from sentence_transformers import SentenceTransformer
 from pathlib import Path
 

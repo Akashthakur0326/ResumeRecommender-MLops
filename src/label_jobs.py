@@ -4,6 +4,7 @@ from pathlib import Path
 import pandas as pd
 import mlflow.sklearn
 from dotenv import load_dotenv
+import yaml 
 
 load_dotenv()
 
@@ -25,6 +26,15 @@ def run_labeling_pipeline():
     # This ensures we only label the data DVC is currently tracking/running
     run_month = current_run_date()
     
+    with open("params.yaml", "r") as f:
+        params = yaml.safe_load(f)
+
+    MODEL_NAME = params['ml_models']['job_labeler']['name']
+    VERSION = params['ml_models']['job_labeler']['version_alias']
+    
+    # 2. Build URI
+    model_uri = f"models:/{MODEL_NAME}@{VERSION}"
+
     # Get precise file paths (e.g., .../processed/serpapi/2026-01.csv)
     input_path = get_processed_data_path(run_month)
     output_path = get_final_data_path(run_month)
@@ -35,8 +45,6 @@ def run_labeling_pipeline():
     # Ensure output directory exists for DVC
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    MODEL_NAME = "Job_Categorizer_Production"
-    model_uri = f"models:/{MODEL_NAME}@champion"
     
     logger.info(f"📡 Pulling @champion from DagsHub: {TRACKING_URI}")
     
@@ -64,7 +72,9 @@ def run_labeling_pipeline():
             return
         
         if df.empty:
-            logger.warning(f"⏩ {input_path.name} is empty. Skipping.")
+            logger.warning(f"⏩ {input_path.name} is empty. Creating empty output for DVC.")
+            # Create the headers-only CSV so DVC is happy
+            df.to_csv(output_path, index=False) 
             return
 
         # 3. Preprocessing (Same logic as before)

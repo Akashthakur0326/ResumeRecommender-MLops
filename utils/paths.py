@@ -52,7 +52,9 @@ def get_processed_data_path(run_month: str) -> Path:
 
 
 def get_final_data_path(run_month: str) -> Path:
-    
+    # Ensure the PARENT directory exists (data/final/serpapi)
+    # Assuming FINAL_DIR points to data/final/serpapi
+    _ensure(FINAL_DIR) 
     return FINAL_DIR / f"{run_month}.csv" 
 
 def get_log_path(run_month: str) -> Path:

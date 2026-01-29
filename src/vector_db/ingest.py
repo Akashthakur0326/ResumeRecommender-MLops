@@ -5,6 +5,7 @@ import time
 from psycopg2.extras import execute_values, Json
 from pathlib import Path
 import sys
+import os # <--- ADD THIS
 
 # 1. PATH MANAGEMENT
 # Resolve the project root so we can import internal modules from anywhere
@@ -23,6 +24,8 @@ with open(PARAMS_PATH) as f:
     params = yaml.safe_load(f)
 
 CURR_MONTH = params['ingest']['current_month']
+BATCH_SIZE = params['ml_models']['vector_encoding']['batch_size']
+
 logger = setup_logger(BASE_DIR / "logs" / "vector_db" / f"{CURR_MONTH}.log")
 
 def prepare_context_text(df: pd.DataFrame) -> list:
@@ -34,6 +37,13 @@ def prepare_context_text(df: pd.DataFrame) -> list:
         "Job Title: " + df['title'].astype(str) + 
         " | Description: " + df['description'].astype(str).str[:2000]
     ).tolist()
+
+
+TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI")
+if not TRACKING_URI:
+    logger.warning("⚠️ MLFLOW_TRACKING_URI not set. Logs may be saved locally!")
+else:
+    mlflow.set_tracking_uri(TRACKING_URI)
 
 def main():
     # 3. MLFLOW TRACKING SETUP
@@ -86,7 +96,9 @@ def main():
         text_blobs = prepare_context_text(df_new)
         
         enc_start = time.time()
-        embeddings = encoder.encode_batch(text_blobs, batch_size=32)
+        # --- USE THE PARAMETER HERE ---
+        embeddings = encoder.encode_batch(text_blobs, batch_size=BATCH_SIZE) 
+        mlflow.log_param("batch_size", BATCH_SIZE) # Log it to see what works best
         mlflow.log_metric("encoding_duration_sec", time.time() - enc_start)
 
         # 8. LOAD: Database Insertion
