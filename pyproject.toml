@@ -28,7 +28,7 @@ dependencies = [
     "google-search-results",
     "requests",
     "pandas",
-    "numpy",
+    "numpy>=1.26.4,<2.0.0",
     "beautifulsoup4",
     "tqdm",
     "python-dateutil",
@@ -44,7 +44,8 @@ dependencies = [
     "streamlit",
     "python-multipart",
     "nltk",
-    "spacy",
+    "spacy~=3.7.0",
+    "en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl",
     "neo4j~=5.28"
 ]
 

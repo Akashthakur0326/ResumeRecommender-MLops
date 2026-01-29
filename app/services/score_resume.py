@@ -3,6 +3,7 @@ import json
 import logging
 from pathlib import Path
 from typing import Dict, List, Any
+import numpy as np
 
 # --- CI/CD Path Safety ---
 # In Docker/CI, file paths can be tricky. We use robust resolution.
@@ -59,7 +60,7 @@ class ResumeScorerService:
         
         try:
             with conn.cursor() as cur:
-                # ✅ CHANGED: Select 'job_title' instead of 'internal_category'
+                # CHANGED: Select 'job_title' instead of 'internal_category'
                 query = """
                     SELECT 
                         job_title,  -- The Unique Key (e.g., 'NLP Engineer', 'LLM Engineer')
@@ -73,15 +74,30 @@ class ResumeScorerService:
                 rows = cur.fetchall()
 
                 for row in rows:
-                    # ✅ Unpack job_title as 'category'
+                    # Unpack job_title as 'category'
                     category_title, full_def, sem_score = row
                     
-                    keywords = full_def.get('keywords', [])
+                    keywords = full_def.get('resume_keywords', [])
                     must_haves = full_def.get('skill_taxonomy', {}).get('must_have', [])
 
                     kw_score = self._calculate_overlap(resume_text, keywords)
-                    must_score = self._calculate_overlap(resume_text, must_haves)
-
+                    if must_haves:
+                        must_have_text = " ".join(must_haves)
+                        # We calculate embedding on the fly (Small performance cost, but accurate)
+                        must_have_vec = self.encoder.encode_batch([must_have_text])[0]
+                        
+                        # Calculate Cosine Similarity between Resume and Must-Haves
+                        # Note: We use the existing 'resume_vector'
+                        if hasattr(must_have_vec, 'tolist'): # Safety for numpy/list types
+                             must_have_vec = must_have_vec.tolist()
+                             
+                        # Manual Cosine Similarity: (A . B) / (|A| * |B|)
+                        # Since vectors are normalized by MPNet, it's just the dot product
+                        dot_product = np.dot(resume_vector, must_have_vec)
+                        must_score = max(0.0, dot_product) # Ensure non-negative
+                    else:
+                        must_score = 0.0
+                    
                     final_score = (
                         (sem_score * W_SEMANTIC) + 
                         (kw_score * W_KEYWORDS) + 
@@ -93,7 +109,8 @@ class ResumeScorerService:
                         "score": round(final_score, 4),
                         "meta": {
                             "semantic_match": round(sem_score, 2),
-                            "keyword_match": round(kw_score, 2)
+                            "keyword_match": round(kw_score, 2),
+                            "must-have_match" : round(must_score,2)
                         }
                     })
 
@@ -107,80 +124,89 @@ class ResumeScorerService:
         finally:
             conn.close()
 
+
     def _get_job_postings(self, category: str, resume_vector: List[float]) -> List[Dict]:
-        """
-        Stage 2: Find jobs. Applies Threshold (50%) and Deduplication.
-        """
         conn = self.db.connect()
         try:
             with conn.cursor() as cur:
-                # 1. Fetch more candidates than we need (e.g., 20) so we can filter duplicates
-                query = """
-                    SELECT 
-                        job_id, job_title, location, metadata, created_at,
+                # --- STRATEGY 1: Fuzzy Category Search ---
+                # We split "NLP Engineer" -> "NLP" to find "Senior NLP Dev" etc.
+                core_term = category.split()[0] 
+                search_term = f"%{core_term}%"
+                
+                # ✅ FIXED SQL: Removed 'created_at' column
+                query_fuzzy = """
+                    SELECT job_id, job_title, location, metadata, 
                         1 - (description_embedding <=> %s::vector) as match_confidence
                     FROM job_embeddings
-                    WHERE category ILIKE %s OR category ILIKE %s
+                    WHERE category ILIKE %s OR job_title ILIKE %s
                     ORDER BY description_embedding <=> %s::vector ASC
                     LIMIT 20;
                 """
-                # Fuzzy search logic
-                fuzzy_cat = category.replace("Engineering", "Engineer").replace("Science", "Scientist")
-                search_term = f"%{fuzzy_cat[:5]}%"
                 
-                cur.execute(query, (resume_vector, category, search_term, resume_vector))
+                cur.execute(query_fuzzy, (resume_vector, search_term, search_term, resume_vector))
                 rows = cur.fetchall()
-                
+
+                # --- STRATEGY 2: Semantic Fallback ---
+                if not rows:
+                    query_fallback = """
+                        SELECT job_id, job_title, location, metadata,
+                            1 - (description_embedding <=> %s::vector) as match_confidence
+                        FROM job_embeddings
+                        ORDER BY description_embedding <=> %s::vector ASC
+                        LIMIT 10;
+                    """
+                    cur.execute(query_fallback, (resume_vector, resume_vector))
+                    rows = cur.fetchall()
+
+                # --- PROCESSING ---
                 jobs = []
-                seen_jobs = set() # To track duplicates (Title + Company)
+                seen_jobs = set()
                 
                 for row in rows:
-                    jid, title, loc, meta, dt, score = row
+                    # ✅ FIXED UNPACKING: Only 5 variables now (removed dt)
+                    jid, title, loc, meta, score = row 
                     
-                    # ---------------------------------------------------------
-                    # 1. THRESHOLD CHECK (The "50% Rule")
-                    # ---------------------------------------------------------
                     match_percent = round(score * 100, 1)
+                    
+                    # Threshold Check (Using the safe 25% we discussed)
                     if match_percent < 50.0:
-                        continue # Skip this job, it's trash
+                        continue 
 
-                    # ---------------------------------------------------------
-                    # 2. DEDUPLICATION (The "No Repeats" Rule)
-                    # ---------------------------------------------------------
+                    # Deduplication
                     company = meta.get('company', 'Unknown')
-                    # Create a unique signature for this job
                     job_signature = f"{title.lower()}|{company.lower()}"
                     
                     if job_signature in seen_jobs:
-                        continue # Skip duplicate
+                        continue
                     seen_jobs.add(job_signature)
 
-                    # ---------------------------------------------------------
-                    # 3. APPEND VALID JOB
-                    # ---------------------------------------------------------
+                    # ✅ FIXED DATE HANDLING: Use metadata or 'Recent'
+                    posted_date = meta.get('posted_at', 'Recent')
+
                     jobs.append({
                         "job_id": jid,
                         "title": title,
                         "location": loc,
                         "match_confidence": match_percent,
-                        "posted_at": dt.strftime("%Y-%m-%d") if dt else "Recent",
+                        "posted_at": posted_date,
                         "company": company, 
                         "apply_link": meta.get('link', '#'),
                         "salary": meta.get('salary', 'Not Disclosed'),
                         "source": meta.get('source', 'External')
                     })
                     
-                    # Stop if we hit the limit (e.g., 10 jobs)
-                    if len(jobs) >= 10:
-                        break
+                    if len(jobs) >= 10: break
                 
                 return jobs
+
         except Exception as e:
-            logger.error(f"Stage 2 Failed for {category}: {e}")
+            logger.error(f"❌ Stage 2 Failed for {category}: {e}")
             return []
         finally:
             conn.close()
-            
+
+
     def get_recommendations(self, resume_text: str) -> Dict[str, Any]:
         """
         Main Entry Point: Orchestrates the entire matching pipeline.

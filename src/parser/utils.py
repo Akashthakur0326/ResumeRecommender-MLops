@@ -18,14 +18,23 @@ from src.parser.constant import EDUCATION_DEGREES, NAME_PATTERN, EMAIL_REGEX
 _nlp_instance = None
 
 def get_nlp():
+    """
+    Returns a singleton instance of the spaCy model.
+    The model 'en_core_web_sm' is now a hard dependency in requirements.txt.
+    """
     global _nlp_instance
     if _nlp_instance is None:
         try:
+            # This should now succeed immediately in Docker
             _nlp_instance = spacy.load("en_core_web_sm")
+            print("✅ [SUCCESS] Loaded spaCy model 'en_core_web_sm'")
         except OSError:
-            from spacy.cli import download
-            download("en_core_web_sm")
-            _nlp_instance = spacy.load("en_core_web_sm")
+            # This should ONLY happen during local dev if you forgot to pip install
+            print("❌ [FATAL] spaCy model not found. Ensure it is installed via requirements.txt")
+            raise ImportError(
+                "spaCy model 'en_core_web_sm' not found. "
+                "Run: pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl"
+            )
     return _nlp_instance
 
 def clean_text(text: str) -> str:

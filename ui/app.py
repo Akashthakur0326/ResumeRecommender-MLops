@@ -23,8 +23,12 @@ st.title("📄 Resume Intelligence Parser")
 uploaded_file = st.file_uploader("Upload Resume", type=["pdf", "docx", "txt"])
 
 if uploaded_file:
+
+    file_bytes = uploaded_file.getvalue()
+    st.session_state.file_bytes= file_bytes
+
     # 1. Size Safety Check (2MB)
-    if uploaded_file.size > 2 * 1024 * 1024:
+    if len(file_bytes) > 2 * 1024 * 1024:
         st.error("File too large. Max size is 2MB.")
         st.stop()
 
@@ -32,10 +36,9 @@ if uploaded_file:
     if st.session_state.file_name != uploaded_file.name:
         with st.spinner("🧠 Extracting Resume Structure..."):
             try:
-                # Prepare payload
-                files = {"file": (uploaded_file.name, uploaded_file.getvalue(), uploaded_file.type)}
+                # Use the pre-read bytes
+                files = {"file": (uploaded_file.name, file_bytes, uploaded_file.type)}
                 
-                # Hit the PARSE endpoint
                 response = requests.post(f"{API_BASE_URL}/api/v1/parse_resume", files=files, timeout=30)
                 
                 if response.status_code == 200:
@@ -109,7 +112,7 @@ if st.session_state.parsed_data:
                 files = {
                     "file": (
                         st.session_state.file_name, 
-                        uploaded_file.getvalue(), 
+                        st.session_state.file_bytes, 
                         uploaded_file.type
                     )
                 }

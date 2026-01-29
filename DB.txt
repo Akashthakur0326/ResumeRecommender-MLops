@@ -29,6 +29,6 @@ CREATE TABLE IF NOT EXISTS role_definitions (
     anchor_embedding vector(768), # contain role summary resposiblity experience etc 
     
     -- The 'Checklist' (Used for detailed scoring)
-    full_definition JSONB, #contain skill , experience , education etc
+    full_definition JSONB, #contain skill_taxonomy ,resume_keywords, experience , education etc
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP #version tracking 
 );"
