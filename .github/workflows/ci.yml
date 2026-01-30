@@ -31,6 +31,13 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: "3.11"
+        
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1  # Important: Match your S3 bucket region (likely Mumbai)
 
       - name: Install All Dependencies & DVC
         env:
@@ -48,31 +55,32 @@ jobs:
           
           # 3. PULL ONLY NLTK DATA (Saves time vs pulling everything)
           dvc pull artifacts/nltk_data.dvc
+          # no model pull here as its too big we make a mock version of it 
 
-      - name: 🔍 Linting (Flake8)
+      - name:  Linting (Flake8)
         run: |
           # Stop build on syntax errors
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
           # Warnings only for style issues
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-      - name: 🧪 Run Unit Tests (Fast)
+      - name:  Run Unit Tests (Fast)
         run: |
           echo "Running logic checks..."
           pytest tests/unit
 
-      - name: 💨 Run Smoke Tests (Sanity)
+      - name:  Run Smoke Tests (Sanity)
         run: |
           echo "Checking startup stability..."
           pytest tests/smoke
 
-      - name: 🔗 Run Integration Tests (Slow & Cloud Connected)
+      - name:  Run Integration Tests (Slow & Cloud Connected)
         # This will fail if Secrets aren't set in GitHub!
         run: |
           echo "Connecting to Cloud DB for Integration tests..."
           pytest tests/integration
 
-      - name: 📉 Run Regression Tests (Drift)
+      - name:  Run Regression Tests (Drift)
         run: |
           echo "Checking scoring consistency..."
           pytest tests/regression
@@ -84,8 +92,8 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
       
-      - name: 🐳 Build Backend
+      - name:  Build Backend
         run: docker build -f Dockerfile.backend -t resume-backend:test .
         
-      - name: 🐳 Build Frontend
+      - name:  Build Frontend
         run: docker build -f Dockerfile.frontend -t resume-frontend:test .
