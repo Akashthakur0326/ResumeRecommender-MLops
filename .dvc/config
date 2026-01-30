@@ -2,4 +2,3 @@
     remote = myremote
 ['remote "myremote"']
     url = s3://resume-recommender-mlops-storage
-    profile = default
