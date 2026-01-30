@@ -32,17 +32,22 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install All Dependencies
+      - name: Install All Dependencies & DVC
+        env:
+          # DVC needs these to download files from your S3/Dagshub remote
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           python -m pip install --upgrade pip
-          pip install flake8 pytest pytest-mock httpx
+          # 1. Install DVC with S3 support (covers AWS and Dagshub)
+          pip install flake8 pytest pytest-mock httpx "dvc[s3]"
           
-          # Install Backend AND Frontend reqs so all imports work
+          # 2. Install Project Requirements
           if [ -f requirements-backend.txt ]; then pip install -r requirements-backend.txt; fi
           if [ -f requirements-frontend.txt ]; then pip install -r requirements-frontend.txt; fi
           
-          # Install local package in editable mode if you have a setup.py (Optional but good)
-          # pip install -e .
+          # 3. PULL ONLY NLTK DATA (Saves time vs pulling everything)
+          dvc pull artifacts/nltk_data.dvc
 
       - name: 🔍 Linting (Flake8)
         run: |
