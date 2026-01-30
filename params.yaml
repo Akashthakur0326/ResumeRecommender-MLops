@@ -3,7 +3,7 @@ filenames:
   locations_data: locations.yaml
 
 ingest:
-  current_month: "2026-01-30"
+  current_month: "2026-01"
 
 ml_models:
   job_labeler:

@@ -5,7 +5,7 @@ import os
 # --- CONFIG ---
 # On Localhost, this defaults to "http://127.0.0.1:8000"
 # On AWS Docker, we change this env var to "http://backend_container:8000"
-API_BASE_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
+API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
 
 st.set_page_config(page_title="Resume Intelligence", layout="wide", page_icon="🧠")
 

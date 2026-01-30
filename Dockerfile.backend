@@ -1,0 +1,42 @@
+# Use a specific version of python on a lightweight OS (slim)
+FROM python:3.11-slim
+
+# Set environment variables
+# 1. Force Python stdout and stderr to be unbuffered (logs show up immediately)
+# 2. Prevent Python from writing .pyc files (useless in containers)
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+# Install system dependencies required for:
+# - psycopg2 (libpq-dev)
+# - build tools (gcc, python3-dev)
+# - CV/PDF tools (libgl1-mesa-glx for cv2/pymupdf if needed)
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set work directory
+WORKDIR /app
+
+# --- LAYER 1: Dependencies (Cached) ---
+COPY requirements-backend.txt .
+
+# Upgrade pip and install dependencies
+# Note: We use --no-cache-dir to keep the image small
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements-backend.txt
+
+# Download spaCy model explicitly (so it's baked into the image)
+RUN python -m spacy download en_core_web_sm
+
+# --- LAYER 2: Application Code ---
+COPY . .
+
+# Expose the port FastAPI runs on
+EXPOSE 8000
+
+# Run the application
+# host 0.0.0.0 is crucial! It allows the container to accept external connections.
+CMD ["uvicorn", "app.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -34,11 +34,11 @@ stages:
       size: 2380
     params:
       params.yaml:
-        ingest.current_month: '2026-01-30'
+        ingest.current_month: '2026-01-31'
         serpapi_ingestion:
           max_api_calls: 2500
     outs:
-    - path: data/raw/serpapi/2026-01-30
+    - path: data/raw/serpapi/2026-01-31
       hash: md5
       md5: d751713988987e9331980363e24189ce.dir
       size: 0
@@ -46,7 +46,7 @@ stages:
   process_jd_raw_jsons:
     cmd: python data_ingestion\processors\process_data.py
     deps:
-    - path: data/raw/serpapi/2026-01-30
+    - path: data/raw/serpapi/2026-01-31
       hash: md5
       md5: d751713988987e9331980363e24189ce.dir
       size: 0
@@ -61,14 +61,14 @@ stages:
       size: 3630
       nfiles: 3
     outs:
-    - path: data/processed/serpapi/2026-01-30.csv
+    - path: data/processed/serpapi/2026-01-31.csv
       hash: md5
       md5: 4ec9b5832d4fefb078aad3cc64a33a27
       size: 198
   label_scraped_jobs:
     cmd: python src/label_jobs.py
     deps:
-    - path: data/processed/serpapi/2026-01-30.csv
+    - path: data/processed/serpapi/2026-01-31.csv
       hash: md5
       md5: 4ec9b5832d4fefb078aad3cc64a33a27
       size: 198
@@ -82,17 +82,17 @@ stages:
       size: 3630
       nfiles: 3
     outs:
-    - path: data/final/serpapi/2026-01-30.csv
+    - path: data/final/serpapi/2026-01-31.csv
       hash: md5
       md5: 4ec9b5832d4fefb078aad3cc64a33a27
       size: 198
   build_vector_store:
     cmd: python src/vector_db/ingest.py
     deps:
-    - path: data/final/serpapi/2026-01-30.csv
+    - path: data/final/serpapi/2026-01.csv
       hash: md5
-      md5: 4ec9b5832d4fefb078aad3cc64a33a27
-      size: 198
+      md5: 591dacfb99207cad60180040e0b47961
+      size: 4084699
     - path: src/vector_db/client.py
       hash: md5
       md5: 9e6d202a914e669952e29f95040abc09
@@ -112,9 +112,9 @@ stages:
       nfiles: 3
     params:
       params.yaml:
-        ingest.current_month: '2026-01-30'
+        ingest.current_month: 2026-01
     outs:
-    - path: data/final/serpapi/2026-01-30.vector_done
+    - path: data/final/serpapi/2026-01.vector_done
       hash: md5
       md5: d41d8cd98f00b204e9800998ecf8427e
       size: 0

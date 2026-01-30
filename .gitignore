@@ -35,9 +35,6 @@ artifacts/*
 # OS
 .DS_Store
 
-# temp 
-.github
-docker_compose.yml
 
 # MLflow local database
 mlflow.db
@@ -56,3 +53,8 @@ models/all-mpnet-base-v2/
 
 !data/constants/jobs.csv
 !data/constants/locations.yaml
+!data/constants/skills.csv
+
+
+#temp
+.github\workflows\serpapi_data_ingestion_monthly.yml
