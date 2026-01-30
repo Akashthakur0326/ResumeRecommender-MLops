@@ -137,6 +137,7 @@ colorama==0.4.6
     #   click
     #   dvc
     #   ipython
+    #   pytest
     #   tqdm
     #   wasabi
 comm==0.2.3
@@ -330,6 +331,8 @@ importlib-metadata==8.7.1
     # via
     #   mlflow-skinny
     #   opentelemetry-api
+iniconfig==2.3.0
+    # via pytest
 ipykernel==7.1.0
     # via resume-recommender-mlops (pyproject.toml)
 ipython==9.9.0
@@ -493,6 +496,7 @@ packaging==25.0
     #   matplotlib
     #   mlflow-skinny
     #   mlflow-tracing
+    #   pytest
     #   spacy
     #   streamlit
     #   thinc
@@ -524,6 +528,8 @@ platformdirs==4.5.1
     # via
     #   dvc
     #   jupyter-core
+pluggy==1.6.0
+    # via pytest
 preshed==3.0.12
     # via
     #   spacy
@@ -591,6 +597,7 @@ pygments==2.19.2
     # via
     #   ipython
     #   ipython-pygments-lexers
+    #   pytest
     #   rich
 pygtrie==2.5.0
     # via
@@ -606,6 +613,8 @@ pyparsing==3.3.2
     #   grandalf
     #   matplotlib
     #   pydot
+pytest==9.0.2
+    # via resume-recommender-mlops (pyproject.toml)
 python-dateutil==2.9.0.post0
     # via
     #   botocore

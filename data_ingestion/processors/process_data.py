@@ -125,6 +125,47 @@ def load_raw_json_files(raw_dir: Path, logger) -> pd.DataFrame:
 
     return pd.DataFrame(all_jobs)
 
+# --- ADD THIS NEW FUNCTION BEFORE MAIN() ---
+def transform_raw_data(df: pd.DataFrame, run_month: str) -> pd.DataFrame:
+    """
+    Pure transformation logic. 
+    Decoupled from File I/O and MLflow for Unit Testing.
+    """
+    # 1. Avoid modifying original
+    df = df.copy()
+    
+    # 2. Add Lineage Columns (if not present)
+    df["ingestion_month"] = run_month
+    if "category" not in df.columns:
+        df["category"] = None
+    df["data_source"] = "serpapi"
+    df["search_engine"] = "google_jobs"
+
+    # 3. Normalization (Text Cleaning)
+    text_cols = ["description", "title", "company_name"]
+    for col in text_cols:
+        if col in df.columns:
+            df[col] = df[col].apply(clean_text)
+
+    # 4. Schema Enforcement
+    for col in REQUIRED_SCHEMA:
+        if col not in df.columns:
+            df[col] = None
+
+    # 5. Fail-Fast / Quality Checks
+    df = df.dropna(subset=["job_id"])
+
+    # 6. Formatting
+    df = df[REQUIRED_SCHEMA]  # Enforce Order
+    df["salary"] = df["salary"].fillna("Not mentioned")
+    df.fillna("Unknown", inplace=True)
+
+    # 7. Sorting
+    df.sort_values(by=["job_id", "company_name"], inplace=True)
+    df = df.drop_duplicates(subset=["job_id"])
+    
+    return df
+
 def main():
     load_dotenv()
     mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI"))
@@ -181,78 +222,33 @@ def main():
 
     # --- START PROCESSING ---
     with mlflow.start_run(run_name=f"process_{run_month}"):
-        df_raw = load_raw_json_files(raw_dir, logger)
-        df_raw = load_raw_json_files(raw_dir, logger)
-        
         # 1. Load Data
-        raw_dir = get_raw_run_dir(run_month)
         df_raw = load_raw_json_files(raw_dir, logger)
-        
-        
         input_count = len(df_raw)
 
-        df= df_raw.copy()
-
-        # --- FAIL-FAST CHECK 1: Volume ---
-        if len(df) < MIN_JOBS_THRESHOLD:
-            logger.warning(f"Extracted 0 jobs. Creating empty sentinel to keep pipeline alive.")
-            # Ensure headers are saved so DVC is happy
-            pd.DataFrame(columns=REQUIRED_SCHEMA).to_csv(processed_path, index=False)
-            sys.exit(0)
-
-        # 2. Add Lineage Columns & Placeholder
-        df["ingestion_month"] = run_month
-        df["category"] = None # Matches REQUIRED_SCHEMA name
+        # 2. Transform Data (This does ALL the work: cleaning, schema, sorting)
+        logger.info("Transforming and cleaning data...")
+        df = transform_raw_data(df_raw, run_month)
         
-        df["data_source"] = "serpapi"
-        df["search_engine"] = "google_jobs"
-
-        # 3. Normalization (Text Cleaning)
-        logger.info("Normalizing text fields...")
-        text_cols = ["description", "title", "company_name"]
-        for col in text_cols:
-            df[col] = df[col].apply(clean_text)
-
-        # 4. Schema Enforcement
-        logger.info("Enforcing schema...")
-        for col in REQUIRED_SCHEMA:
-            if col not in df.columns:
-                df[col] = None
-        
-        # 5. --- FAIL-FAST CHECK 2: Quality (MUST happen BEFORE fillna) ---
-        df = df.dropna(subset=["job_id"])
-
-        # 6. Final Formatting & Cleanup
-        df = df[REQUIRED_SCHEMA] # Final Fixed Column Order
-        df["salary"] = df["salary"].fillna("Not mentioned")
-        df.fillna("Unknown", inplace=True) # Now safe to fill remaining NaNs
-
-        # 7. Deterministic Sorting
-        logger.info("Sorting data for deterministic output...")
-        df.sort_values(by=["job_id", "company_name"], inplace=True)      
-        
-        df = df.drop_duplicates(subset=["job_id"])
         output_count = len(df)
-        
-        # 8. Save
+
+        # 3. Save Output
         processed_path.parent.mkdir(parents=True, exist_ok=True)
         df.to_csv(processed_path, index=False)
 
+        # 4. Metrics Calculation
         salary_mentioned = (df["salary"] != "Not mentioned").sum()
         salary_coverage = (salary_mentioned / output_count) * 100 if output_count > 0 else 0
         drop_rate = ((input_count - output_count) / input_count) * 100 if input_count > 0 else 0
 
         # Log to MLflow
-        mlflow.log_param("run_month", run_month)
         mlflow.log_metric("input_rows", input_count)
         mlflow.log_metric("output_rows", output_count)
         mlflow.log_metric("drop_rate_pct", round(drop_rate, 2))
         mlflow.log_metric("salary_coverage_pct", round(salary_coverage, 2))
-        
-        # Log the actual file as an artifact so you can see it in DagsHub
         mlflow.log_artifact(str(processed_path))
         
-        logger.info(f"Successfully processed {output_count} jobs to {processed_path}")
+        logger.info(f"Successfully processed {output_count} jobs.")
 
 if __name__ == "__main__":
     main()
