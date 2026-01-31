@@ -1,0 +1,154 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  # App Config
+  PYTHONPATH: ${{ github.workspace }}
+  AWS_REGION: ap-south-1
+
+jobs:
+  # ------------------------------------------------------------------
+  # JOB 1: CI (Quality Assurance)
+  # ------------------------------------------------------------------
+  quality-assurance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install Dependencies & DVC
+        env:
+           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 pytest pytest-mock httpx "dvc[s3]"
+          
+          if [ -f requirements-backend.txt ]; then pip install -r requirements-backend.txt; fi
+          if [ -f requirements-frontend.txt ]; then pip install -r requirements-frontend.txt; fi
+          
+          # CI OPTIMIZATION: Pull ONLY lightweight artifacts for testing
+          # We do NOT pull the heavy model here to save time/bandwidth
+          dvc pull artifacts/nltk_data.dvc
+
+      - name: Linting (Flake8)
+        run: |
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Run Unit Tests
+        run: pytest tests/unit
+
+      - name: Run Smoke Tests
+        run: pytest tests/smoke
+
+      - name: Run Integration Tests
+        run: pytest tests/integration
+      - name: Run Regression Tests
+        run: pytest tests/regression
+
+  # ------------------------------------------------------------------
+  # JOB 2: CD (Continuous Deployment)
+  # Runs ONLY on 'push to main' AND if CI passed
+  # ------------------------------------------------------------------
+  deploy:
+    needs: quality-assurance
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # --- STEP 1: HYDRATE MODELS (The MLOps Magic) ---
+      # We download the REAL 400MB model now.
+      # Because it's on disk, the 'COPY . .' in Dockerfile will bake it into the image.
+      - name: Pull Full Models via DVC
+        run: |
+          python -m pip install "dvc[s3]"
+          dvc pull
+
+      # --- STEP 2: BUILD & PUSH BACKEND ---
+      - name: Build & Push Backend
+        id: build-backend
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_BACKEND_REPO }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Build using the file 'Dockerfile.backend'
+          docker build -f Dockerfile.backend -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      # --- STEP 3: BUILD & PUSH FRONTEND ---
+      - name: Build & Push Frontend
+        id: build-frontend
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_FRONTEND_REPO }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -f Dockerfile.frontend -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      # --- STEP 4: UPDATE ECS TASK DEFINITION ---
+      - name: Download Task Definition
+        run: |
+          aws ecs describe-task-definition --task-definition ${{ secrets.ECS_TASK_DEFINITION }} \
+          --query taskDefinition > task-definition.json
+
+      # Update Backend Container Image in the Task Def
+      - name: Render Backend Container
+        id: render-backend
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: backend-container
+          image: ${{ steps.build-backend.outputs.image }}
+
+      # Update Frontend Container Image in the Task Def (Chained)
+      - name: Render Frontend Container
+        id: render-frontend
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ steps.render-backend.outputs.task-definition }}
+          container-name: frontend-container
+          image: ${{ steps.build-frontend.outputs.image }}
+
+      # --- STEP 5: DEPLOY ---
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.render-frontend.outputs.task-definition }}
+          service: ${{ secrets.ECS_SERVICE }}
+          cluster: ${{ secrets.ECS_CLUSTER }}
+          wait-for-service-stability: true
