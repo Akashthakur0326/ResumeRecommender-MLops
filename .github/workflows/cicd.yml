@@ -129,7 +129,9 @@ jobs:
         run: |
           aws ecs describe-task-definition --task-definition ${{ secrets.ECS_TASK_DEFINITION }} \
           --query taskDefinition > task-definition.json
-
+          
+          # FIX: Remove the new AWS feature flag that crashes the GitHub Action
+          echo "$(jq 'del(.enableFaultInjection)' task-definition.json)" > task-definition.json
       # Update Backend Container Image in the Task Def
       - name: Render Backend Container
         id: render-backend
