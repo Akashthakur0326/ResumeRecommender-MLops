@@ -57,4 +57,4 @@ models/all-mpnet-base-v2/
 
 
 #temp
-.github\workflows\serpapi_data_ingestion_monthly.yml
+.github/workflows/cicd.yml

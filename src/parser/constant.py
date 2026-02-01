@@ -11,15 +11,56 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))
 
+import nltk
+import sys
+from pathlib import Path
+
+# Reach Root logic
+ROOT = Path(__file__).resolve().parent.parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.append(str(ROOT))
+
+from utils.paths import NLTK_DATA_PATH
+
+# 1. Force NLTK to use local path
+nltk.data.path.append(str(NLTK_DATA_PATH))
+
+# ---------------------------------------------------------
+# SELF-HEALING NLTK DOWNLOADER
+# ---------------------------------------------------------
+def ensure_nltk_resources():
+    """
+    Checks for required NLTK resources and downloads them if missing.
+    This acts as a backup if DVC or Docker build missed them.
+    """
+    resources = [
+        ("corpora/stopwords", "stopwords"),
+        ("tokenizers/punkt", "punkt"),
+        ("tokenizers/punkt_tab", "punkt_tab") # <--- The critical missing piece
+    ]
+
+    for path_id, download_id in resources:
+        try:
+            nltk.data.find(path_id)
+        except LookupError:
+            print(f"⚠️ NLTK resource '{download_id}' not found. Downloading to {NLTK_DATA_PATH}...")
+            try:
+                nltk.download(download_id, download_dir=str(NLTK_DATA_PATH), quiet=True)
+                print(f"✅ Downloaded {download_id}")
+            except Exception as e:
+                print(f"❌ Failed to download {download_id}: {e}")
+
+# Run the check immediately on import
+ensure_nltk_resources()
+
 try:
     STOPWORDS = set(nltk.corpus.stopwords.words("english"))
 except LookupError:
-    print(f"⚠️ NLTK data not found. Fallback download to {NLTK_DATA_PATH}")
-    nltk.download("stopwords", download_dir=str(NLTK_DATA_PATH))
-    STOPWORDS = set(nltk.corpus.stopwords.words("english"))
+    # Fallback if download failed (shouldn't happen with above logic)
+    STOPWORDS = set()
 
 # 2. Regex Patterns
-EMAIL_REGEX = r"([^@|\s]+@[^@]+\.[^@|\s]+)"
+EMAIL_REGEX = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"
 PHONE_REGEX = r"(\d{3}[-\.\s]??\d{3}[-\.\s]??\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{4})"
 
 

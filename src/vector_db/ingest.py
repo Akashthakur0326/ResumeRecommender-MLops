@@ -21,7 +21,8 @@ from utils.logger import setup_logger
 with open(PARAMS_PATH) as f:
     params = yaml.safe_load(f)
 
-CURR_MONTH = params['ingest']['current_month']
+# FIX: Force string conversion to prevent path errors (e.g. 2026-02-02 becoming a date obj)
+CURR_MONTH = str(params['ingest']['current_month'])
 BATCH_SIZE = params['ml_models']['vector_encoding']['batch_size']
 
 logger = setup_logger(BASE_DIR / "logs" / "vector_db" / f"{CURR_MONTH}.log")
@@ -50,16 +51,15 @@ def main():
         # 4. EXTRACTION
         csv_path = get_final_data_path(CURR_MONTH)
         if not csv_path.exists():
-            logger.error(f"❌ Final CSV for {CURR_MONTH} not found.")
-            return
+            logger.error(f"❌ Final CSV for {CURR_MONTH} not found at {csv_path}")
+            sys.exit(1)
         
         df = pd.read_csv(csv_path)
-        total_records = len(df)
-
+        
         # 5. Pre-Encoding Filter
-        # Since we just Truncated the DB, this will return 0 existing IDs, 
-        # allowing a full re-ingestion.
         db = PostgresClient()
+        
+        # Check against existing IDs to avoid re-embedding
         with db.connect().cursor() as cur:
             cur.execute(
                 "SELECT job_id FROM job_embeddings WHERE ingestion_month = %s",
@@ -75,7 +75,7 @@ def main():
         mlflow.log_param("new_jobs_detected", new_records_count)
 
         if df_new.empty:
-            logger.info(f"✅ month {CURR_MONTH} is already synchronized.")
+            logger.info(f"✅ Batch {CURR_MONTH} is already synchronized.")
             (csv_path.parent / f"{CURR_MONTH}.vector_done").touch()
             return
 
@@ -92,17 +92,14 @@ def main():
             data_tuples = []
             for idx, (original_i, row) in enumerate(df_new.iterrows()):
                 
-                # --- ✅ FIX: CAPTURE ALL METADATA ---
                 meta_payload = {
                     "company": row.get('company_name'),
                     "salary": row.get('salary'),
                     "link": row.get('apply_link') or row.get('job_link'),
                     "source": row.get('data_source'),
-                    
-                    # CAPTURED FROM CSV
-                    "posted_at": row.get('posted_at'),         # e.g., "6 days ago"
-                    "created_at": row.get('ingestion_timestamp'), # e.g., "2026-01-22..."
-                    "schedule_type": row.get('schedule_type')  # e.g., "Full-time"
+                    "posted_at": row.get('posted_at'),       
+                    "created_at": row.get('ingestion_timestamp'), 
+                    "schedule_type": row.get('schedule_type')  
                 }
 
                 data_tuples.append((
@@ -115,6 +112,7 @@ def main():
                     CURR_MONTH                      # Version
                 ))
         
+            # Using ON CONFLICT DO NOTHING to be safe
             insert_query = """
                 INSERT INTO job_embeddings 
                 (job_id, job_title, category, location, description_embedding, metadata, ingestion_month)

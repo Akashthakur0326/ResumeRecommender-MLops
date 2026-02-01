@@ -1,39 +1,44 @@
+# data_ingestion/jd_ingestion/serp_api/priority_scheduler.py
 import pandas as pd
 from typing import List, Dict
 import sys
 from pathlib import Path
+from sqlalchemy import text
 
+# ... (Path setup remains the same) ...
 project_root = Path(__file__).resolve().parent.parent.parent.parent
-
-# 2. Add the Project Root to Python's search path
 if str(project_root) not in sys.path:
     sys.path.append(str(project_root))
 
-from utils.paths import JOBS_CSV_PATH
-
+from utils.db import get_db_engine
 
 def load_jobs_with_priority() -> List[Dict]:
+    """ Fetch active jobs and their current policy priority """
+    engine = get_db_engine()
+    query = """
+    SELECT j.job_title, p.priority
+    FROM jobs_base j
+    JOIN ingestion_policy p ON j.internal_category = p.internal_category
+    WHERE p.effective_to IS NULL;
     """
-    Returns:
-    [
-      {
-        "job_title": "...",
-        "priority": "High" | "Medium" | "Low"
-      }
-    ]
-    """
-    df = pd.read_csv(JOBS_CSV_PATH)
+    try:
+        with engine.connect() as conn:
+            df = pd.read_sql(text(query), conn)
+        return df.to_dict(orient="records") if not df.empty else []
+    except Exception as e:
+        print(f"❌ DB Error (Jobs): {e}")
+        raise e
 
-    required_cols = {"job_title", "priority_tier"}
-    if not required_cols.issubset(df.columns):
-        raise ValueError(f"jobs.csv must contain {required_cols}")
-
-    jobs = []
-    for _, row in df.iterrows():
-        jobs.append({
-            "job_title": row["job_title"],
-            "priority": row["priority_tier"]
-        })
-
-    return jobs
+def load_active_locations() -> List[str]:
+    """ Fetch all active locations from DB """
+    engine = get_db_engine()
+    query = "SELECT location_name FROM locations_base WHERE is_active = TRUE;"
     
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(text(query)).fetchall()
+        # Result is list of tuples like [('New York',), ('London',)]
+        return [row[0] for row in result]
+    except Exception as e:
+        print(f"❌ DB Error (Locations): {e}")
+        raise e

@@ -8,57 +8,64 @@ import yaml
 
 load_dotenv()
 
-TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI")
-mlflow.set_tracking_uri(TRACKING_URI)
-
 # Add project root to sys.path
 project_root = Path(__file__).resolve().parent.parent
 if str(project_root) not in sys.path:
     sys.path.append(str(project_root))
 
 from utils.logger import setup_logger
-# We now import get_processed_data_path and get_final_data_path directly
-from utils.paths import get_processed_data_path, get_final_data_path, get_log_path
-from utils.dates import current_run_date
+from utils.paths import get_processed_data_path, get_final_data_path, get_log_path, PARAMS_PATH
+
+def load_params():
+    """Load the single source of truth for the current batch ID."""
+    if not PARAMS_PATH.exists():
+        raise FileNotFoundError(f"params.yaml missing at {PARAMS_PATH}")
+    
+    with open(PARAMS_PATH, "r") as f:
+        return yaml.safe_load(f)
 
 def run_labeling_pipeline():
-    # 1. Identify the Specific Target for this Run
-    # This ensures we only label the data DVC is currently tracking/running
-    run_month = current_run_date()
-    
-    with open("params.yaml", "r") as f:
-        params = yaml.safe_load(f)
+    # 1. Load Configuration
+    try:
+        params = load_params()
+        # FIX: Use the deterministic batch ID from params, not the current clock time
+        run_month = str(params["ingest"]["current_month"])
+        
+        MODEL_NAME = params['ml_models']['job_labeler']['name']
+        VERSION = params['ml_models']['job_labeler']['version_alias']
+    except Exception as e:
+        print(f"❌ Configuration Error: {e}")
+        sys.exit(1)
 
-    MODEL_NAME = params['ml_models']['job_labeler']['name']
-    VERSION = params['ml_models']['job_labeler']['version_alias']
-    
-    # 2. Build URI
-    model_uri = f"models:/{MODEL_NAME}@{VERSION}"
-
-    # Get precise file paths (e.g., .../processed/serpapi/2026-01.csv)
-    input_path = get_processed_data_path(run_month)
-    output_path = get_final_data_path(run_month)
-    
+    # 2. Setup Logging
     log_file_path = get_log_path(run_month)
     logger = setup_logger(log_path=log_file_path, logger_name="job_labeler")
+    
+    # 3. Build Paths
+    input_path = get_processed_data_path(run_month)
+    output_path = get_final_data_path(run_month)
     
     # Ensure output directory exists for DVC
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
+    # 4. Load Model from DagsHub
+    mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI"))
+    model_uri = f"models:/{MODEL_NAME}@{VERSION}"
     
-    logger.info(f"📡 Pulling @champion from DagsHub: {TRACKING_URI}")
+    logger.info(f"📡 Pulling @{VERSION} model from DagsHub...")
     
     try:
         model = mlflow.sklearn.load_model(model_uri)
         logger.info("💎 Model loaded successfully!")
     except Exception as e:
-        logger.error(f"❌ Failed to load model: {str(e)}")
-        return
+        logger.error(f"❌ Failed to load model from {model_uri}: {str(e)}")
+        # Harsh truth: If the model fails to load, the pipeline MUST fail.
+        sys.exit(1)
 
-    # 2. Validation: Ensure the specific input file exists
+    # 5. Validation: Ensure the specific input file exists
     if not input_path.exists():
         logger.error(f"⚠️ Source file {input_path} not found. Did the 'process' stage fail?")
-        return
+        sys.exit(1)
 
     logger.info(f"🔍 Processing data file: {input_path.name}")
     
@@ -77,19 +84,20 @@ def run_labeling_pipeline():
             df.to_csv(output_path, index=False) 
             return
 
-        # 3. Preprocessing (Same logic as before)
+        # 6. Preprocessing (Same logic as before)
+        # Note: Ensure this text handling exactly matches what the model was trained on!
         X_input = (df['title'].fillna('') + " " + df['description'].fillna('')).astype(str)
         
-        # 4. Inference
+        # 7. Inference
         df['category'] = model.predict(X_input)
         
-        # 5. Save to the specific DVC-tracked output path
-        # If input is processed/serpapi/2026-01.csv, output is final/serpapi/2026-01.csv
+        # 8. Save to the specific DVC-tracked output path
         df.to_csv(output_path, index=False)
         logger.info(f"✅ Saved {len(df)} labeled rows to {output_path}")
 
     except Exception as e:
         logger.error(f"❌ Could not process {input_path.name}: {str(e)}")
+        sys.exit(1)
 
     logger.info("🏁 Labeling pipeline complete.")
 

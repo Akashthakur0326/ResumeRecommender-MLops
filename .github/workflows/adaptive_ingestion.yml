@@ -1,0 +1,161 @@
+name: Adaptive Ingestion & Drift Management
+
+on:
+  # ------------------------------------------------------------------
+  # TRIGGER STRATEGY
+  # ------------------------------------------------------------------
+  # Cron Breakdown: "20 4 2,17 * *"
+  # 20 -> Minute (20)
+  # 4  -> Hour (4 AM UTC)
+  # 2,17 -> Day of Month (2nd and 17th). 
+  # This creates a ~15 day interval starting from the 2nd.
+  schedule:
+    - cron: '20 4 2,17 * *'
+  
+  # Allow manual trigger for testing/debugging
+  workflow_dispatch:
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # ------------------------------------------------------------------
+      # 1. ENVIRONMENT SETUP
+      # ------------------------------------------------------------------
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v3
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: 📦 Install Dependencies
+        # We need 'boto3' for AWS, 'psycopg2' for RDS, and 'dvc[s3]' for remote storage.
+        run: |
+          pip install --upgrade pip
+          pip install dvc[s3] pandas psycopg2-binary sqlalchemy mlflow python-dotenv pyyaml serpapi google-search-results sentence-transformers boto3
+
+      # ------------------------------------------------------------------
+      # 2. CONFIGURE PARAMETERS (CRITICAL STEP)
+      # ------------------------------------------------------------------
+      - name: 📅 Update Params (Batch ID)
+        # WHY: We run this FIRST so that 'params.yaml' contains the 
+        # correct batch ID (e.g., "2026-02-02") before any other script tries to read it.
+        run: python src/update_params.py
+
+      # ------------------------------------------------------------------
+      # 3. AWS AUTHENTICATION & SECURITY HACK
+      # ------------------------------------------------------------------
+      - name: 🔐 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: "ap-south-1" 
+
+      - name: 🛡️ Whitelist Runner IP in RDS Security Group
+        id: whitelist-ip
+        # WHY: GitHub Runners use dynamic public IPs. Your RDS Security Group 
+        # blocks them by default. We essentially "punch a hole" in the firewall 
+        # just for this specific runner, and we will close it at the end.
+        run: |
+          IP=$(curl -s checkip.amazonaws.com)
+          echo "Detected Runner IP: $IP"
+          
+          aws ec2 authorize-security-group-ingress \
+            --group-id ${{ secrets.AWS_SG_ID }} \
+            --protocol tcp \
+            --port 5432 \
+            --cidr $IP/32
+          
+          # Save IP to output for the Cleanup step
+          echo "runner_ip=$IP" >> $GITHUB_OUTPUT
+
+      # ------------------------------------------------------------------
+      # 4. DVC SYNCHRONIZATION
+      # ------------------------------------------------------------------
+      - name: 📡 Pull DVC Data (S3)
+        # WHY: We must pull 'dvc.lock' and previous data states from S3 
+        # to ensure we are building ON TOP of previous work, not overwriting it.
+        run: |
+          dvc remote modify myremote access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+          dvc remote modify myremote secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          dvc pull
+
+      # ------------------------------------------------------------------
+      # 5. FAIL-FAST CHECKS (SAVE MONEY)
+      # ------------------------------------------------------------------
+      - name: 🔌 Check RDS Connectivity
+        # WHY: If RDS is down, we want to fail HERE, before we spend money 
+        # on SerpAPI calls in the next step.
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: python src/scripts/check_db.py
+
+      # ------------------------------------------------------------------
+      # 6. INTELLIGENT ADAPTATION
+      # ------------------------------------------------------------------
+      - name: 🧠 Analyze Drift & Update Policy
+        # WHY: This script checks 'job_embeddings' table concentration.
+        # It updates 'ingestion_policy' in RDS. The subsequent ingestion 
+        # step will query this policy to decide WHAT to scrape.
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: python src/scripts/manage_drift.py
+
+      # ------------------------------------------------------------------
+      # 7. EXECUTE PIPELINE
+      # ------------------------------------------------------------------
+      - name: 🚀 Run DVC Pipeline (Ingest -> Vector)
+        # WHY: This runs the full DAG defined in dvc.yaml.
+        # It uses the updated 'params.yaml' and the updated RDS Policy.
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
+          MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
+          SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
+        run: dvc repro
+
+      # ------------------------------------------------------------------
+      # 8. SAVE STATE
+      # ------------------------------------------------------------------
+      - name: ☁️ Push New Data to DVC (S3)
+        # WHY: Upload the newly scraped JSON/CSV and the updated dvc.lock to S3.
+        run: dvc push
+
+      - name: 💾 Commit dvc.lock to Git
+        # WHY: 'dvc.lock' is the Source of Truth. By committing it back to the repo,
+        # we ensure that the next developer (or you) pulling the repo sees 
+        # the exact dataset state that this Cron Job generated.
+        run: |
+          git config --global user.name 'GitHub Action Bot'
+          git config --global user.email 'bot@github.com'
+          git add dvc.lock params.yaml
+          git commit -m "🤖 Cron: Batch $(date +'%Y-%m-%d') [skip ci]" || echo "No changes to commit"
+          git push
+
+      # ------------------------------------------------------------------
+      # 9. CLEANUP (ALWAYS RUNS)
+      # ------------------------------------------------------------------
+      - name: 🧹 Revoke Runner IP from RDS
+        if: always() 
+        # WHY: Closing the firewall hole is critical. 'if: always()' ensures 
+        # this runs even if the Python scripts crash.
+        run: |
+          aws ec2 revoke-security-group-ingress \
+            --group-id ${{ secrets.AWS_SG_ID }} \
+            --protocol tcp \
+            --port 5432 \
+            --cidr ${{ steps.whitelist-ip.outputs.runner_ip }}/32

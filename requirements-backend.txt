@@ -101,6 +101,10 @@ protobuf==6.33.4
 # --- Neo4j ---
 neo4j==5.28.3
 
+# --- AI / Reasoning ---
+groq==1.0.0
+httpx==0.28.1
+
 # --- Utilities ---
 requests==2.32.5
 python-dateutil==2.9.0.post0

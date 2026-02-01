@@ -3,7 +3,7 @@ filenames:
   locations_data: locations.yaml
 
 ingest:
-  current_month: "2026-01"
+  current_month: "2026-02-02"
 
 ml_models:
   job_labeler:
@@ -13,4 +13,4 @@ ml_models:
     batch_size: 16
 
 serpapi_ingestion:
-  max_api_calls: 2500
+  max_api_calls: 250

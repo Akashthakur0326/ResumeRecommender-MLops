@@ -5,8 +5,6 @@ stages:
       - data_ingestion/jd_ingestion/serp_api/serpapi_ingest.py
       - data_ingestion/jd_ingestion/serp_api/serpapi_client.py   
       - data_ingestion/jd_ingestion/serp_api/priority_scheduler.py 
-      - data/constants/jobs.csv
-      - data/constants/locations.yaml
       - utils/paths.py 
       - utils
     params:
@@ -37,7 +35,7 @@ stages:
     cmd: python src/vector_db/ingest.py
     deps:
       - src/vector_db/ingest.py
-      - src/vector_db/client.py
+      - src/vector_db/client.py 
       - src/vector_db/encoder.py
       - data/final/serpapi/${ingest.current_month}.csv
       - utils/

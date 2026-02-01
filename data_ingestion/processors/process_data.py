@@ -1,6 +1,7 @@
 import sys
 import json
 import pandas as pd
+import yaml  # Added yaml import
 from pathlib import Path
 import re
 from datetime import datetime
@@ -16,8 +17,8 @@ if str(project_root) not in sys.path:
     sys.path.append(str(project_root))
 
 from utils.logger import setup_logger
-from utils.paths import get_raw_run_dir, get_processed_data_path
-from utils.dates import current_run_date
+from utils.paths import get_raw_run_dir, get_processed_data_path, PARAMS_PATH # Added PARAMS_PATH
+# Removed 'current_run_date' import to prevent date drift
 
 # --- CONFIGURATION ---
 REQUIRED_SCHEMA = [
@@ -40,17 +41,22 @@ REQUIRED_SCHEMA = [
     "apply_link"         
 ]
 
-
-
 # Fail-Fast Thresholds
 MIN_JOBS_THRESHOLD = 1
+
+def load_params():
+    """Load the single source of truth for the current batch ID."""
+    if not PARAMS_PATH.exists():
+        raise FileNotFoundError(f"params.yaml missing at {PARAMS_PATH}")
+    
+    with open(PARAMS_PATH, "r") as f:
+        params = yaml.safe_load(f)
+        # Ensure we get the string value even if yaml parses it as date object
+        return str(params["ingest"]["current_month"])
 
 def clean_text(text: str) -> str:
     """
     Advanced text normalization for ML/RAG.
-    1. Replaces newlines with spaces.
-    2. Collapses multiple spaces .
-    3. Removes bullet points and common unicode artifacts.
     """
     if not text or not isinstance(text, str):
         return "Unknown"
@@ -59,7 +65,6 @@ def clean_text(text: str) -> str:
     text = text.replace("\n", " ").replace("\r", " ")
     
     # 2. Remove common bullet points and non-ascii artifacts
-    # \u2022 (bullet), \u2013 (en dash), \u2014 (em dash)
     text = re.sub(r'[\u2022\u2026•·]', '', text)
     
     # 3. Collapse multiple spaces into one
@@ -78,9 +83,8 @@ def load_raw_json_files(raw_dir: Path, logger) -> pd.DataFrame:
     files = list(raw_dir.glob("*.json"))
 
     if not files:
-        logger.warning(f"No JSON files found in {raw_dir}. Skipping processing gracefully.")
-        import sys
-        sys.exit(0)
+        # Return empty list immediately if no files, main will handle exit
+        return pd.DataFrame()
 
     for file_path in files:
         try:
@@ -97,9 +101,7 @@ def load_raw_json_files(raw_dir: Path, logger) -> pd.DataFrame:
 
             results = data.get("jobs_results", [])
             for job in results:
-                # Flatten extensions safely
                 extensions = job.get("detected_extensions", {})
-                
                 apply_options = job.get("apply_options", [])
                 first_apply_link = apply_options[0].get("link") if apply_options else None
 
@@ -125,23 +127,23 @@ def load_raw_json_files(raw_dir: Path, logger) -> pd.DataFrame:
 
     return pd.DataFrame(all_jobs)
 
-# --- ADD THIS NEW FUNCTION BEFORE MAIN() ---
 def transform_raw_data(df: pd.DataFrame, run_month: str) -> pd.DataFrame:
     """
     Pure transformation logic. 
-    Decoupled from File I/O and MLflow for Unit Testing.
     """
-    # 1. Avoid modifying original
+    if df.empty:
+        return pd.DataFrame(columns=REQUIRED_SCHEMA)
+
     df = df.copy()
     
-    # 2. Add Lineage Columns (if not present)
+    # 2. Add Lineage Columns
     df["ingestion_month"] = run_month
     if "category" not in df.columns:
         df["category"] = None
     df["data_source"] = "serpapi"
     df["search_engine"] = "google_jobs"
 
-    # 3. Normalization (Text Cleaning)
+    # 3. Normalization
     text_cols = ["description", "title", "company_name"]
     for col in text_cols:
         if col in df.columns:
@@ -171,7 +173,14 @@ def main():
     mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI"))
     mlflow.set_experiment("data_processing_json_to_csv")
 
-    run_month = current_run_date()
+    # --- CRITICAL FIX: Read batch ID from params, do not generate it ---
+    try:
+        run_month = load_params()
+    except Exception as e:
+        # Fallback logger isn't setup yet, print to stderr
+        print(f"❌ Failed to load params: {e}")
+        sys.exit(1)
+
     processed_path = get_processed_data_path(run_month)
     if not str(processed_path).endswith(".csv"):
             processed_path = processed_path.with_suffix(".csv")
@@ -179,46 +188,41 @@ def main():
     log_path = processed_path.parent / "processing.log"
     
     logger = setup_logger(log_path, "data_processing")
-    logger.info(f"Starting processing for {run_month}")
+    logger.info(f"Starting processing for batch ID: {run_month}")
 
     # --- DATA INTEGRITY CHECK ---
     raw_dir = get_raw_run_dir(run_month)
+    
+    if not raw_dir.exists():
+        logger.warning(f"Raw directory {raw_dir} does not exist. Skipping.")
+        sys.exit(0)
+
     raw_files = list(raw_dir.glob("*.json"))
     
-    # 1. If there is absolutely no raw data, we must skip
+    # 1. If there is absolutely no raw data
     if len(raw_files) == 0:
         logger.warning(f"No JSON files found in {raw_dir}. Creating empty Sentinel CSV.")
         
-        # Create an empty DataFrame with the correct schema
         empty_df = pd.DataFrame(columns=REQUIRED_SCHEMA)
         processed_path.parent.mkdir(parents=True, exist_ok=True)
         empty_df.to_csv(processed_path, index=False)
         
-        # Log the empty run to MLflow so you see it in the dashboard
         with mlflow.start_run(run_name=f"process_{run_month}"):
             mlflow.log_metric("input_rows", 0)
             mlflow.log_metric("output_rows", 0)
             
         sys.exit(0)
 
-    # 2. If raw files exist, check if we need to (re)generate the CSV
-    should_run = False
-    if not processed_path.exists():
-        logger.info("Processed CSV is missing. Forcing run.")
-        should_run = True
-    else:
+    # 2. Check if we need to run (Idempotency)
+    if processed_path.exists():
         try:
             existing_df = pd.read_csv(processed_path)
-            if len(existing_df) < MIN_JOBS_THRESHOLD:
-                logger.info("Processed CSV is empty. Forcing run.")
-                should_run = True
+            # If CSV exists and has data, skip (unless you want to force re-runs)
+            if len(existing_df) >= MIN_JOBS_THRESHOLD:
+                logger.info(f"✅ Data integrity verified ({len(existing_df)} jobs). Skipping.")
+                return 
         except Exception:
             logger.warning("Existing CSV is corrupt. Forcing run.")
-            should_run = True
-
-    if not should_run:
-        logger.info(f"✅ Data integrity verified ({len(existing_df)} jobs). Skipping redundant work.")
-        return 
 
     # --- START PROCESSING ---
     with mlflow.start_run(run_name=f"process_{run_month}"):
@@ -226,7 +230,7 @@ def main():
         df_raw = load_raw_json_files(raw_dir, logger)
         input_count = len(df_raw)
 
-        # 2. Transform Data (This does ALL the work: cleaning, schema, sorting)
+        # 2. Transform Data
         logger.info("Transforming and cleaning data...")
         df = transform_raw_data(df_raw, run_month)
         
