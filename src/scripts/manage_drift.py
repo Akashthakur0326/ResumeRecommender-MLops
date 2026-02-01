@@ -10,15 +10,14 @@ sys.path.append(str(PROJECT_ROOT))
 from utils.db import get_db_engine
 
 # --- THRESHOLDS ---
-# If a category represents less than 2% of DB, prioritize it.
 MIN_THRESHOLD_PCT = 2.0  
-# If a category represents more than 15% of DB, deprioritize it.
 MAX_THRESHOLD_PCT = 15.0 
 
 def manage_drift():
     engine = get_db_engine()
     print("🧠 Analyzing Data Drift...")
 
+    # FIX: Explicitly commit/rollback using the connection directly
     with engine.connect() as conn:
         # 1. Get Current Distribution from Vector Store
         query_dist = text("""
@@ -39,14 +38,12 @@ def manage_drift():
         df_dist['percentage'] = (df_dist['count'] / total_jobs) * 100
 
         # 3. Fetch Current Active Policies
-        # We need this to avoid updating if the priority hasn't changed (Idempotency)
         query_policy = text("""
             SELECT internal_category, priority
             FROM ingestion_policy
             WHERE effective_to IS NULL
         """)
         current_policies = pd.read_sql(query_policy, conn)
-        # Convert to dict for fast lookup: {'Data Science': 'High'}
         policy_map = dict(zip(current_policies['internal_category'], current_policies['priority']))
 
         updates_made = 0
@@ -67,14 +64,11 @@ def manage_drift():
                 new_priority = "Medium"
                 reason = f"Healthy: {pct:.2f}%"
 
-            # Check if change is needed
             current_priority = policy_map.get(category, "None")
             
             if current_priority != new_priority:
                 print(f"🔄 Updating {category}: {current_priority} -> {new_priority} ({reason})")
                 
-                # Transaction: Close old policy, Insert new one
-                trans = conn.begin()
                 try:
                     # A. Close old policy
                     close_sql = text("""
@@ -97,14 +91,14 @@ def manage_drift():
                         "reason": reason
                     })
                     
-                    trans.commit()
+                    # FIX: Simply commit the changes on the connection
+                    conn.commit()
                     updates_made += 1
                 except Exception as e:
-                    trans.rollback()
+                    # Rollback if anything goes wrong for this specific update
+                    conn.rollback()
                     print(f"❌ Failed to update {category}: {e}")
             else:
-                # Optional: Verbose logging
-                # print(f"✅ {category} is stable at {pct:.2f}%")
                 pass
 
     print(f" Drift Management Complete. Policies updated: {updates_made}")
