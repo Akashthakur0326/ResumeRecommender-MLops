@@ -17,7 +17,7 @@ env:
   ECR_PROMETHEUS: resume-prometheus
 
   # ECS Configuration
-  ECS_CLUSTER: resume-cluster
+  ECS_CLUSTER: resume-clusterss
   ECS_SERVICE: resume-service
   ECS_TASK_DEFINITION: resume-tasks
 
