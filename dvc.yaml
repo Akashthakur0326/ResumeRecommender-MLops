@@ -14,11 +14,11 @@ stages:
       - data/raw/serpapi/${ingest.current_month}
     
   process_jd_raw_jsons:
-    cmd: python data_ingestion\processors\process_data.py
+    cmd: python data_ingestion/processors/process_data.py
     deps:
       - data_ingestion/processors/process_data.py
-      - data/raw/serpapi/${ingest.current_month}  # Depends on the raw folder
-      - utils/            # Depends on utils logic
+      - data/raw/serpapi/${ingest.current_month}
+      - utils/
     outs:
       - data/processed/serpapi/${ingest.current_month}.csv
 
@@ -26,7 +26,7 @@ stages:
     cmd: python src/label_jobs.py
     deps:
       - src/label_jobs.py
-      - data/processed/serpapi/${ingest.current_month}.csv  # Triggers if any month folder or CSV changes
+      - data/processed/serpapi/${ingest.current_month}.csv
       - utils/
     outs:
       - data/final/serpapi/${ingest.current_month}.csv
@@ -43,4 +43,4 @@ stages:
       - ingest.current_month
     outs:
     - data/final/serpapi/${ingest.current_month}.vector_done:
-        cache: false #This output should NOT be cached, versioned, or restored by DVC “Because the actual output of the stage is a database side effect, which DVC cannot track. The sentinel file acts as a deterministic completion marker for the pipeline, while cache: false prevents DVC from falsely restoring state it cannot reproduce
+        cache: false
