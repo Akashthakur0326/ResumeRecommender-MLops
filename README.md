@@ -75,9 +75,15 @@ ResumeRecommenderMLops/
 ├── requirements.txt            # Python dependency manifest
 └── README.md                   # Project documentation and setup guide
 
-concerns 
---> making a parameter based postgreSQL for proper jump bw local setup and cloud setup based db
---> setting up a corn job for the data ingestion for jd and setting them up with the dp 
+grafana/
+├── provisioning/
+│   ├── datasources/
+│   │   └── datasource.yaml    <-- Auto-connects Prometheus
+│   └── dashboards/
+│       └── dashboard.yaml     <-- Tells Grafana where to find JSONs
+└── dashboards/
+    └── full_stack_monitoring.json  <-- We will put the JSON here later
+
 
 --> MANAGING BACKEND AND FRONTEND IN DOCKER 
         Launch:
@@ -93,9 +99,5 @@ REMINDER
 *--> always run python src/update_params.py before every dvc repro as that updates the params.yaml to current month-year
 -->The Network: Docker creates a virtual "WiFi" cable between them inside the EC2 instance.
 
-TO DO 
 
---> generate all the possible cyphers 
---> make a inference cycle using groq
---> add the reasoning layer 
 

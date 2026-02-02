@@ -75,6 +75,22 @@ if st.session_state.parsed_data:
         exp = data.get('experience', [])
         st.info(f"💼 **Experience:** {len(exp)} items detected")
 
+    if exp:
+        with st.expander("📜 View Extracted Experience Details"):
+            for i, item in enumerate(exp):
+                # Check if item is a string or a dictionary (depends on your parser)
+                if isinstance(item, str):
+                    st.markdown(f"**{i+1}.** {item}")
+                elif isinstance(item, dict):
+                    # If your parser returns structured dicts
+                    role = item.get('title', 'Role')
+                    company = item.get('company', '')
+                    dates = item.get('dates', '')
+                    st.markdown(f"**{i+1}. {role}** at *{company}* ({dates})")
+                    st.caption(item.get('description', ''))
+                else:
+                    st.write(f"- {item}")
+
     # 3. Skills & Structure Tabs
     tab1, tab2 = st.tabs(["🛠️ Skills Detected", "📑 Structure Analysis"])
     with tab1:

@@ -37,9 +37,42 @@ services:
     networks:
       - resume_network
 
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: resume_prometheus
+    restart: always
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090" # Prometheus UI
+    networks:
+      - resume_network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: resume_grafana
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true  # Optional: Skip login for local dev
+    depends_on:
+      - prometheus
+    volumes:
+      # 1. Mount the Configuration (Datasources & Dashboard Providers)
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      # 2. Mount the actual JSON Dashboards
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - resume_network
+
 # Explicit network definition for clarity
 networks:
   resume_network:
     driver: bridge
 #this makes the frontend and backend container talk internally with http://backend:8000 and not http://localhost:8000 thus the internal traffic never hits the browser 
 #What happens if you don’t use a custom network -- Docker will: create a default unnamed network still allow communication but this is more stable and keeps the internal traffic private and this is more scalable 
+
+volumes:
+  grafana_data:

@@ -115,3 +115,6 @@ pyyaml==6.0.3
 rich==14.3.1
 click==8.3.1
 typing-extensions==4.15.0
+
+#--vizualization--
+prometheus-client==0.24.1
