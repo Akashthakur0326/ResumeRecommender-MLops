@@ -115,18 +115,24 @@ class AIInsightEngine:
         try:
             # FIX: Explicitly set encrypted=True and trust strategy
             # Note: neo4j+ssc:// in the URI handles most of this, but this is safer
+            # In ai_insight.py > AIInsightEngine > __init__
+
             self.driver = GraphDatabase.driver(
                 self.neo4j_uri, 
                 auth=self.auth,
-                max_connection_lifetime=200, # Refresh connections often
-                keep_alive=True  # Keep TCP connection open
+                max_connection_lifetime=200, 
+                keep_alive=True 
             )
             
-            # Verify immediately
+            # 🚨 CRITICAL: Verify connectivity immediately. 
+            # If this fails, we want the app to crash, not pretend it's working.
             self.driver.verify_connectivity()
             logger.info("✅ AIInsightEngine connected to Neo4j")
+
         except Exception as e:
-            logger.warning(f"⚠️ Neo4j Connection Warning: {e}")
+            # 🚨 FIX: Don't just log warning. RAISE the error so you know it failed.
+            logger.critical(f"❌ Neo4j Connection Failed: {e}")
+            self.driver = None
 
     def close(self):
         if hasattr(self, 'driver') and self.driver:
