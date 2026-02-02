@@ -8,12 +8,12 @@ on:
   # 0 0  -> 00:00 UTC (05:30 AM IST)
   # 1,11,21 -> The 1st, 11th, and 21st of every month.
   schedule:
-    - cron: '0 0 1,11,21 * *'
+    - cron: '0 0 1,7,13,20,27 * *'
   
   # Allow manual trigger for testing/debugging
   workflow_dispatch:
 
-#Grant Write Permission for Git Push
+#Grant Write Permission for Git Push as we update the dvc lock and can do git pull and then dvc pull for the latest results 
 permissions:
   contents: write
 
@@ -37,7 +37,7 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install dvc[s3] pandas psycopg2-binary sqlalchemy mlflow python-dotenv pyyaml serpapi google-search-results sentence-transformers boto3 scikit-learn==1.6.1
-          
+
       # ------------------------------------------------------------------
       # 2. CONFIGURE PARAMETERS (CRITICAL STEP)
       # ------------------------------------------------------------------

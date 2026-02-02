@@ -21,16 +21,13 @@ from utils.logger import setup_logger
 with open(PARAMS_PATH) as f:
     params = yaml.safe_load(f)
 
-# FIX: Force string conversion to prevent path errors (e.g. 2026-02-02 becoming a date obj)
 CURR_MONTH = str(params['ingest']['current_month'])
 BATCH_SIZE = params['ml_models']['vector_encoding']['batch_size']
+INSERT_BATCH_SIZE = 100  # 🆕 Limit rows per insert query to prevent timeouts
 
 logger = setup_logger(BASE_DIR / "logs" / "vector_db" / f"{CURR_MONTH}.log")
 
 def prepare_context_text(df: pd.DataFrame) -> list:
-    """
-    Combines fields to maximize semantic signal for the embedding model.
-    """
     return (
         "Job Title: " + df['title'].astype(str) + 
         " | Description: " + df['description'].astype(str).str[:2000]
@@ -59,18 +56,22 @@ def main():
         # 5. Pre-Encoding Filter
         db = PostgresClient()
         
-        # Check against existing IDs to avoid re-embedding
-        with db.connect().cursor() as cur:
-            cur.execute(
-                "SELECT job_id FROM job_embeddings WHERE ingestion_month = %s",
-                (CURR_MONTH,)
-            )
-            existing_ids = {str(row[0]) for row in cur.fetchall()}
+        try:
+            with db.connect().cursor() as cur:
+                cur.execute(
+                    "SELECT job_id FROM job_embeddings WHERE ingestion_month = %s",
+                    (CURR_MONTH,)
+                )
+                existing_ids = {str(row[0]) for row in cur.fetchall()}
+        finally:
+            # 🚨 FIX 1: CLOSE CONNECTION NOW. 
+            # We are about to do heavy CPU work (Encoding) which takes minutes.
+            # Keeping the DB connection open causes an "Idle Timeout".
+            db.close()
 
         df_new = df[~df['job_id'].astype(str).isin(existing_ids)]
         new_records_count = len(df_new)
 
-        # 6. AUDIT
         mlflow.log_param("ingestion_month", CURR_MONTH)
         mlflow.log_param("new_jobs_detected", new_records_count)
 
@@ -79,7 +80,8 @@ def main():
             (csv_path.parent / f"{CURR_MONTH}.vector_done").touch()
             return
 
-        # 7. TRANSFORM
+        # 6. TRANSFORM (Heavy CPU Work - No DB Connection Active)
+        logger.info(f"⏳ Encoding {new_records_count} records (this may take a while)...")
         encoder = SemanticEncoder() 
         text_blobs = prepare_context_text(df_new)
         
@@ -87,11 +89,13 @@ def main():
         embeddings = encoder.encode_batch(text_blobs, batch_size=BATCH_SIZE) 
         mlflow.log_metric("encoding_duration_sec", time.time() - enc_start)
 
-        # 8. LOAD
+        # 7. LOAD (Re-connect Freshly)
         try:
+            # 🚨 FIX 2: Re-instantiate client to force a fresh connection
+            db = PostgresClient() 
+            
             data_tuples = []
             for idx, (original_i, row) in enumerate(df_new.iterrows()):
-                
                 meta_payload = {
                     "company": row.get('company_name'),
                     "salary": row.get('salary'),
@@ -103,16 +107,15 @@ def main():
                 }
 
                 data_tuples.append((
-                    str(row['job_id']),             # PK
-                    row['title'],                   # Display
-                    row['category'],                # Filter
-                    row.get('location', 'N/A'),     # Filter
-                    embeddings[idx],                # Vector
-                    Json(meta_payload),             # JSONB Data
-                    CURR_MONTH                      # Version
+                    str(row['job_id']),             
+                    row['title'],                   
+                    row['category'],                
+                    row.get('location', 'N/A'),     
+                    embeddings[idx],                
+                    Json(meta_payload),             
+                    CURR_MONTH                      
                 ))
         
-            # Using ON CONFLICT DO NOTHING to be safe
             insert_query = """
                 INSERT INTO job_embeddings 
                 (job_id, job_title, category, location, description_embedding, metadata, ingestion_month)
@@ -120,10 +123,14 @@ def main():
                 ON CONFLICT (job_id) DO NOTHING;
             """
             
+            # 🚨 FIX 3: Batch Insertion to prevent Packet Size errors
             with db.connect().cursor() as cur:
-                execute_values(cur, insert_query, data_tuples)
+                total_batches = (len(data_tuples) // INSERT_BATCH_SIZE) + 1
+                for i in range(0, len(data_tuples), INSERT_BATCH_SIZE):
+                    batch = data_tuples[i:i + INSERT_BATCH_SIZE]
+                    execute_values(cur, insert_query, batch)
+                    logger.info(f"   Saved batch {i//INSERT_BATCH_SIZE + 1}/{total_batches}")
             
-            # 9. FINALIZATION
             logger.info(f"✅ Ingested {new_records_count} new records into Postgres.")
             (csv_path.parent / f"{CURR_MONTH}.vector_done").touch()
 

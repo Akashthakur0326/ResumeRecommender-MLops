@@ -32,3 +32,29 @@ CREATE TABLE IF NOT EXISTS role_definitions (
     full_definition JSONB, #contain skill_taxonomy ,resume_keywords, experience , education etc
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP #version tracking 
 );"
+
+
+ -- Table 1: Static Job Taxonomy
+    CREATE TABLE IF NOT EXISTS jobs_base (
+        job_id SERIAL PRIMARY KEY,
+        job_title VARCHAR(255) UNIQUE NOT NULL,
+        internal_category VARCHAR(255) NOT NULL
+    );
+
+    -- Table 2: Dynamic Ingestion Policy (SCD Type 2)
+    CREATE TABLE IF NOT EXISTS ingestion_policy (
+        policy_id SERIAL PRIMARY KEY,
+        internal_category VARCHAR(255) NOT NULL,
+        priority VARCHAR(50) NOT NULL,
+        effective_from TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        effective_to TIMESTAMP NULL,
+        reason VARCHAR(255)
+    );
+
+    -- Table 3: Active Locations
+    CREATE TABLE IF NOT EXISTS locations_base (
+        loc_id SERIAL PRIMARY KEY,
+        location_name VARCHAR(255) UNIQUE NOT NULL,
+        is_active BOOLEAN DEFAULT TRUE
+    );
+    """
