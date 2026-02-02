@@ -13,6 +13,10 @@ on:
   # Allow manual trigger for testing/debugging
   workflow_dispatch:
 
+#Grant Write Permission for Git Push
+permissions:
+  contents: write
+
 jobs:
   run-pipeline:
     runs-on: ubuntu-latest
@@ -32,8 +36,8 @@ jobs:
       - name: 📦 Install Dependencies
         run: |
           pip install --upgrade pip
-          pip install dvc[s3] pandas psycopg2-binary sqlalchemy mlflow python-dotenv pyyaml serpapi google-search-results sentence-transformers boto3
-
+          pip install dvc[s3] pandas psycopg2-binary sqlalchemy mlflow python-dotenv pyyaml serpapi google-search-results sentence-transformers boto3 scikit-learn==1.6.1
+          
       # ------------------------------------------------------------------
       # 2. CONFIGURE PARAMETERS (CRITICAL STEP)
       # ------------------------------------------------------------------
