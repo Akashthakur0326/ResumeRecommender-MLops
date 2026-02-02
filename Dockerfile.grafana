@@ -1,0 +1,3 @@
+FROM prom/prometheus:latest
+# Copy the config file from your local folder INTO the image
+COPY monitoring/prometheus.yml /etc/prometheus/prometheus.yml

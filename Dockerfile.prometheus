@@ -1,0 +1,4 @@
+FROM grafana/grafana:latest
+# Copy provisioning and dashboards INTO the image
+COPY grafana/provisioning /etc/grafana/provisioning
+COPY grafana/dashboards /var/lib/grafana/dashboards

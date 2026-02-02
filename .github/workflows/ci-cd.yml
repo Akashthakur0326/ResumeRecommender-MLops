@@ -1,0 +1,181 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  AWS_REGION: ap-south-1
+
+  # ECR Repositories
+  ECR_BACKEND: resume-backend
+  ECR_FRONTEND: resume-frontend
+  ECR_GRAFANA: resume-grafana
+  ECR_PROMETHEUS: resume-prometheus
+
+  # ECS Configuration (Typo Fixed Here)
+  ECS_CLUSTER: resume-cluster
+  ECS_SERVICE: resume-service
+  ECS_TASK_DEFINITION: resume-tasks
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # -------------------------------------------------
+      # 1. Checkout code
+      # -------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # -------------------------------------------------
+      # 2. Configure AWS credentials
+      # -------------------------------------------------
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # -------------------------------------------------
+      # 3. Login to Amazon ECR
+      # -------------------------------------------------
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # -------------------------------------------------
+      # 4. Install jq (required for task-definition cleanup)
+      # -------------------------------------------------
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      # -------------------------------------------------
+      # 5. Pull ML artifacts via DVC (baked into backend)
+      # -------------------------------------------------
+      - name: Install DVC & Pull Models
+        run: |
+          python -m pip install --upgrade pip
+          pip install "dvc[s3]"
+          dvc pull models/all-mpnet-base-v2.dvc artifacts/nltk_data.dvc
+
+      # -------------------------------------------------
+      # 6. Build & Push Backend Image
+      # -------------------------------------------------
+      - name: Build & Push Backend
+        id: build-backend
+        run: |
+          docker build -f Dockerfile.backend \
+            -t ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_BACKEND }}:${{ github.sha }} .
+          docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_BACKEND }}:${{ github.sha }}
+          echo "image=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_BACKEND }}:${{ github.sha }}" >> $GITHUB_OUTPUT
+
+      # -------------------------------------------------
+      # 7. Build & Push Frontend Image
+      # -------------------------------------------------
+      - name: Build & Push Frontend
+        id: build-frontend
+        run: |
+          docker build -f Dockerfile.frontend \
+            -t ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_FRONTEND }}:${{ github.sha }} .
+          docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_FRONTEND }}:${{ github.sha }}
+          echo "image=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_FRONTEND }}:${{ github.sha }}" >> $GITHUB_OUTPUT
+
+      # -------------------------------------------------
+      # 8. Build & Push Prometheus Image
+      # -------------------------------------------------
+      - name: Build & Push Prometheus
+        id: build-prometheus
+        run: |
+          docker build -f Dockerfile.prometheus \
+            -t ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_PROMETHEUS }}:${{ github.sha }} .
+          docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_PROMETHEUS }}:${{ github.sha }}
+          echo "image=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_PROMETHEUS }}:${{ github.sha }}" >> $GITHUB_OUTPUT
+
+      # -------------------------------------------------
+      # 9. Build & Push Grafana Image
+      # -------------------------------------------------
+      - name: Build & Push Grafana
+        id: build-grafana
+        run: |
+          docker build -f Dockerfile.grafana \
+            -t ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_GRAFANA }}:${{ github.sha }} .
+          docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_GRAFANA }}:${{ github.sha }}
+          echo "image=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_GRAFANA }}:${{ github.sha }}" >> $GITHUB_OUTPUT
+
+      # -------------------------------------------------
+      # 10. Download & Sanitize Task Definition
+      # -------------------------------------------------
+      - name: Download ECS task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ env.ECS_TASK_DEFINITION }} \
+            --query taskDefinition > task-def.json
+
+          jq 'del(
+            .taskDefinitionArn,
+            .revision,
+            .status,
+            .requiresAttributes,
+            .compatibilities,
+            .registeredAt,
+            .registeredBy,
+            .enableFaultInjection
+          )' task-def.json > cleaned-task-def.json
+
+      # -------------------------------------------------
+      # 11. Update Backend Image
+      # -------------------------------------------------
+      - name: Render Backend Image
+        id: render-backend
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: cleaned-task-def.json
+          container-name: backend
+          image: ${{ steps.build-backend.outputs.image }}
+
+      # -------------------------------------------------
+      # 12. Update Frontend Image
+      # -------------------------------------------------
+      - name: Render Frontend Image
+        id: render-frontend
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ steps.render-backend.outputs.task-definition }}
+          container-name: frontend
+          image: ${{ steps.build-frontend.outputs.image }}
+
+      # -------------------------------------------------
+      # 13. Update Prometheus Image
+      # -------------------------------------------------
+      - name: Render Prometheus Image
+        id: render-prometheus
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ steps.render-frontend.outputs.task-definition }}
+          container-name: prometheus
+          image: ${{ steps.build-prometheus.outputs.image }}
+
+      # -------------------------------------------------
+      # 14. Update Grafana Image
+      # -------------------------------------------------
+      - name: Render Grafana Image
+        id: render-grafana
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ steps.render-prometheus.outputs.task-definition }}
+          container-name: grafana
+          image: ${{ steps.build-grafana.outputs.image }}
+
+      # -------------------------------------------------
+      # 15. Deploy to ECS Service
+      # -------------------------------------------------
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.render-grafana.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
