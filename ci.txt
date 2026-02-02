@@ -1,0 +1,93 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  # Secrets for Integration Tests (connecting to Real RDS)
+  DB_HOST: ${{ secrets.DB_HOST }}
+  DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  
+  # Standard Config
+  DB_USER: postgres
+  DB_NAME: postgres
+  DB_PORT: 5432
+  # Critical: Tells Python where to look for 'src', 'app', 'utils'
+  PYTHONPATH: ${{ github.workspace }}
+
+jobs:
+  quality-assurance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+        
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1  # Important: Match your S3 bucket region (likely Mumbai)
+
+      - name: Install All Dependencies & DVC
+        env:
+          # DVC needs these to download files from your S3/Dagshub remote
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          python -m pip install --upgrade pip
+          # 1. Install DVC with S3 support (covers AWS and Dagshub)
+          pip install flake8 pytest pytest-mock httpx "dvc[s3]"
+          
+          # 2. Install Project Requirements
+          if [ -f requirements-backend.txt ]; then pip install -r requirements-backend.txt; fi
+          if [ -f requirements-frontend.txt ]; then pip install -r requirements-frontend.txt; fi
+          
+          # 3. PULL ONLY NLTK DATA (Saves time vs pulling everything)
+          dvc pull artifacts/nltk_data.dvc
+          # no model pull here as its too big we make a mock version of it 
+      - name:  Linting (Flake8)
+        run: |
+          # Stop build on syntax errors
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # Warnings only for style issues
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      - name:  Run Unit Tests (Fast)
+        run: |
+          echo "Running logic checks..."
+          pytest tests/unit
+      - name:  Run Smoke Tests (Sanity)
+        run: |
+          echo "Checking startup stability..."
+          pytest tests/smoke
+      - name:  Run Integration Tests (Slow & Cloud Connected)
+        # This will fail if Secrets aren't set in GitHub!
+        run: |
+          echo "Connecting to Cloud DB for Integration tests..."
+          pytest tests/integration
+      - name:  Run Regression Tests (Drift)
+        run: |
+          echo "Checking scoring consistency..."
+          pytest tests/regression
+  docker-build-check:
+    needs: quality-assurance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name:  Build Backend
+        run: docker build -f Dockerfile.backend -t resume-backend:test .
+        
+      - name:  Build Frontend
+        run: docker build -f Dockerfile.frontend -t resume-frontend:test .
